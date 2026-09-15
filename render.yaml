@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: library-management-system
+    env: node
+    plan: free
+    buildCommand: npm install && cd server && npm install
+    startCommand: node server/server.js
+    healthCheckPath: /api/books
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 5000
+      - key: EMAIL_USER
+        sync: false
+      - key: EMAIL_PASS
+        sync: false

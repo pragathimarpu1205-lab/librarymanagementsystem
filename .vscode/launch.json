@@ -1,0 +1,13 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "▶ Run Reading Room Server (Port 5000)",
+            "skipFiles": ["<node_internals>/**"],
+            "program": "${workspaceFolder}/server/server.js",
+            "cwd": "${workspaceFolder}"
+        }
+    ]
+}

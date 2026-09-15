@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>The Reading Room — Library Circulation, ₹10/Day Fine & Payment QR Scanner</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=IBM+Plex+Mono:wght@400;500;600;700&family=Source+Serif+4:ital,wght@0,400;0,500;0,600;1,400&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <!-- html5-qrcode library for real camera & image scanning in payment modal -->
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+</head>
+
+<body>
+
+  <!-- Login Screen -->
+  <div id="view-login">
+    <div class="login-card">
+      <div class="login-brand-eyebrow">The Reading Room</div>
+      <div class="login-title">Sign in</div>
+      <div class="login-sub">circulation, ₹10/day fine, 2-day alerts & payment QR scanner</div>
+
+      <div class="role-toggle">
+        <button type="button" class="active" id="roleAdminBtn">Admin / Librarian</button>
+        <button type="button" id="roleStudentBtn">Student</button>
+      </div>
+
+      <div class="field"><label>Username or Email</label><input type="text" id="loginUser"
+          placeholder="e.g. admin or student@gmail.com"></div>
+      <div class="field"><label>Password</label><input type="password" id="loginPass" placeholder="••••••••"></div>
+      <button type="button" class="login-btn" id="loginBtn">Sign in</button>
+      <button type="button" class="login-secondary-btn" id="registerStudentBtn" onclick="showSignupModal()">Create
+        student account</button>
+      <div class="login-error" id="loginError"></div>
+      <div class="global-alert hidden" id="globalAlert"></div>
+
+      <div class="login-hint" id="loginHint">Demo admin login — username: <b>admin</b> · password: <b>admin123</b></div>
+    </div>
+  </div>
+
+  <!-- Main App Shell -->
+  <div id="app-shell" class="hidden">
+    <div class="topbar">
+      <div class="topbar-inner">
+        <div class="brand-mini">
+          <span class="title">The Reading Room</span>
+          <span class="role-badge" id="roleBadge">Admin</span>
+        </div>
+        <div class="nav-tabs" id="navTabs"></div>
+        <div class="top-actions">
+          <button class="top-btn" id="openMailHubTopBtn" title="Email Settings, 1-Click Inbox & Custom Mail">📧 Mail
+            Hub</button>
+          <button class="top-btn" id="openPaymentSettingsBtn" title="Configure UPI QR Code for Fine Payments">💳 UPI QR
+            Config</button>
+          <div class="user-block">
+            <span class="user-name" id="userName"></span>
+            <button class="logout-btn" id="logoutBtn">Log out</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="wrap">
+
+      <!-- 1. ADMIN DASHBOARD -->
+      <div class="view" id="view-admin-dashboard">
+        <div class="page-title">Circulation & Dashboard</div>
+        <div class="page-sub">automated ₹10/day fines, 2-day return email alerts & UPI payment QR scanner</div>
+
+        <!-- Quick Stats -->
+        <div class="stat-grid">
+          <div class="stat-tile">
+            <div class="num" id="d-total">0</div>
+            <div class="label">Titles in catalog</div>
+          </div>
+          <div class="stat-tile">
+            <div class="num" id="d-students">0</div>
+            <div class="label">Registered students</div>
+          </div>
+          <div class="stat-tile">
+            <div class="num" id="d-issued">0</div>
+            <div class="label">Currently issued</div>
+          </div>
+          <div class="stat-tile warn">
+            <div class="num" id="d-overdue">0</div>
+            <div class="label">Overdue loans</div>
+          </div>
+          <div class="stat-tile warn">
+            <div class="num" id="d-fines">₹0</div>
+            <div class="label">Total Unpaid Fines</div>
+          </div>
+        </div>
+
+        <!-- 2-Day Return Alert Panel -->
+        <div class="panel">
+          <div class="panel-header">
+            <div>
+              <h3>⏰ Due in 2 Days — Return Email Reminders</h3>
+              <div class="panel-sub">Students who must return books within 2 days to avoid ₹10/day fine</div>
+            </div>
+            <button class="action-btn primary" id="triggerRemindersBtn">🚀 Send 2-Day Alerts to All</button>
+          </div>
+          <div id="dueIn2List"></div>
+        </div>
+
+        <!-- Overdue Books List with ₹10/day calculation -->
+        <div class="panel">
+          <div class="panel-header">
+            <div>
+              <h3>⚠️ Overdue Loans & Accrued Fines (₹10/day)</h3>
+              <div class="panel-sub">Books not returned by due date with calculated late fees</div>
+            </div>
+          </div>
+          <div id="overdueList"></div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="panel">
+          <h3>Quick Actions</h3>
+          <div class="quick-actions">
+            <button class="quick-btn" data-goto="mail-hub">
+              <div class="qt">📧 Mail Hub</div>
+              <div class="qs">1-click test inbox & SMTP settings</div>
+            </button>
+            <button class="quick-btn" data-goto="issue">
+              <div class="qt">Issue a Book</div>
+              <div class="qs">assign a title to a student</div>
+            </button>
+            <button class="quick-btn" data-goto="return">
+              <div class="qt">Return a Book</div>
+              <div class="qs">calculate fine & close loan</div>
+            </button>
+            <button class="quick-btn" data-goto="catalog">
+              <div class="qt">Manage Catalog</div>
+              <div class="qs">add or remove titles</div>
+            </button>
+            <button class="quick-btn" data-goto="students">
+              <div class="qt">Student Accounts</div>
+              <div class="qs">view history & clear fines</div>
+            </button>
+          </div>
+        </div>
+
+        <!-- Recent Fine Payments -->
+        <div class="panel">
+          <div class="panel-header">
+            <div>
+              <h3>💳 Recent UPI Fine Payments</h3>
+              <div class="panel-sub">Payments submitted via UPI QR scanner & screenshot proofs</div>
+            </div>
+            <button class="action-btn" id="refreshPaymentsBtn">🔄 Refresh</button>
+          </div>
+          <div id="paymentsList"></div>
+        </div>
+
+        <div class="two-col">
+          <!-- Student Search -->
+          <div class="panel admin-search-panel">
+            <h3>Student Quick Lookup</h3>
+            <div class="search-box">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="8" />
+                <line x1="21" y1="21" x2="16.65" y2="16.65" />
+              </svg>
+              <input type="text" id="studentSearchInput" placeholder="Search students by name, ID, or email…">
+            </div>
+            <div id="studentSearchResults" class="search-results"></div>
+            <div id="studentDetailsCard"></div>
+          </div>
+
+          <!-- Fine Rate & Activity -->
+          <div>
+            <div class="panel">
+              <h3>Fine Rate Configuration</h3>
+              <div class="field"><label>Daily Late Return Fine</label>
+                <div class="rate-input-row" style="display:flex; gap:10px; align-items:center;">
+                  <input type="number" id="fineRateInput" min="0" step="1" style="max-width:140px;">
+                  <span style="font-family:'IBM Plex Mono',monospace; font-size:13px;">₹ / day overdue</span>
+                </div>
+              </div>
+              <button class="confirm-btn" id="saveFineRateBtn" style="margin-top:8px;">Save fine rate</button>
+            </div>
+
+            <div class="panel">
+              <h3>Recent System Activity</h3>
+              <div id="activityList"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. MAIL & NOTIFICATIONS HUB VIEW -->
+      <div class="view hidden" id="view-mail-hub">
+        <div class="page-title">📧 Email & Notifications Hub</div>
+        <div class="page-sub">configure mail delivery with 1-click test inboxes, Gmail presets, or custom SMTP</div>
+
+        <!-- Provider Selection Cards -->
+        <div class="email-providers-grid">
+          <!-- 1-Click Instant Test Inbox -->
+          <div class="provider-card featured" id="providerEtherealCard">
+            <div class="badge-featured">Instant • Zero Setup</div>
+            <h4>⚡ 1-Click Instant Test Inbox</h4>
+            <p>No password or configuration required! Instantly generates a live test SMTP inbox where every sent email
+              gets a clickable browser preview link.</p>
+            <button class="confirm-btn" id="btnCreateEtherealInbox" style="margin-top:10px; width:100%;">Generate
+              Instant Test Inbox</button>
+            <div id="etherealStatus" style="margin-top:8px; font-family:'IBM Plex Mono',monospace; font-size:12px;">
+            </div>
+          </div>
+
+          <!-- Gmail Mode -->
+          <div class="provider-card" id="providerGmailCard">
+            <h4>🔴 Google / Gmail Mode</h4>
+            <p>Deliver real emails to students' actual Gmail addresses using a secure Google 16-letter App Password.</p>
+            <button class="action-btn primary" id="btnSelectGmailMode" style="margin-top:10px; width:100%;">Configure
+              Gmail</button>
+          </div>
+
+          <!-- Custom SMTP -->
+          <div class="provider-card" id="providerCustomCard">
+            <h4>⚙️ Custom SMTP Server</h4>
+            <p>Connect Outlook, Yahoo, AWS SES, SendGrid, or your institution's custom SMTP mail server.</p>
+            <button class="action-btn" id="btnSelectCustomMode" style="margin-top:10px; width:100%;">Configure Custom
+              SMTP</button>
+          </div>
+        </div>
+
+        <div class="two-col" style="margin-top:24px;">
+          <!-- Email Settings Form -->
+          <div class="panel">
+            <h3>SMTP Configuration Details</h3>
+            <div class="field">
+              <label>Current Delivery Provider</label>
+              <select id="hubEmailService">
+                <option value="gmail">Gmail (smtp.gmail.com)</option>
+                <option value="outlook">Outlook / Hotmail (smtp.office365.com)</option>
+                <option value="yahoo">Yahoo Mail (smtp.mail.yahoo.com)</option>
+                <option value="ethereal">Ethereal (Instant Test Inbox)</option>
+                <option value="custom">Custom SMTP Server</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Sender Email Address (Username)</label>
+              <input type="email" id="hubEmailUser" placeholder="e.g. yourlibrary@gmail.com">
+            </div>
+            <div class="field">
+              <label>Password / App Password</label>
+              <input type="password" id="hubEmailPass" placeholder="••••••••••••••••">
+            </div>
+            <div class="field">
+              <label>Sender Name / From Header</label>
+              <input type="text" id="hubEmailFrom" placeholder="The Reading Room Library <noreply@readingroom.edu>">
+            </div>
+            <div id="hubCustomFields" style="display:none;">
+              <div class="field"><label>SMTP Host</label><input type="text" id="hubSmtpHost"
+                  placeholder="smtp.yourserver.com"></div>
+              <div class="field"><label>SMTP Port</label><input type="number" id="hubSmtpPort"
+                  placeholder="465 (SSL) or 587 (TLS)"></div>
+            </div>
+            <button class="confirm-btn" id="btnSaveHubSettings" style="width:100%;">Save Email Settings</button>
+
+            <!-- Gmail App Password Accordion Guide -->
+            <details class="guide-accordion" style="margin-top:16px;">
+              <summary>📖 How to get a Gmail App Password in 60 seconds</summary>
+              <ol style="margin:10px 0 0 18px; font-size:13px; line-height:1.7; color:#444;">
+                <li>Go to your <b>Google Account</b> (<a href="https://myaccount.google.com"
+                    target="_blank">myaccount.google.com</a>).</li>
+                <li>Click <b>Security</b> in the left navigation.</li>
+                <li>Ensure <b>2-Step Verification</b> is turned ON.</li>
+                <li>Search for <b>"App Passwords"</b> in the search bar.</li>
+                <li>Enter name (e.g. <i>Library System</i>) and click <b>Create</b>.</li>
+                <li>Copy the <b>16-letter code</b> and paste it into the password box above!</li>
+              </ol>
+            </details>
+          </div>
+
+          <!-- Direct Email Composer & Live Test Tool -->
+          <div>
+            <!-- Live Test Tool -->
+            <div class="panel">
+              <h3>🧪 Send Test Email</h3>
+              <div style="display:flex; gap:8px;">
+                <input type="email" id="hubTestEmailInput" placeholder="Enter recipient email address"
+                  style="flex:1; padding:9px; border:1px solid var(--card-shadow); border-radius:3px;">
+                <button class="action-btn primary" id="btnHubSendTest">Send Test</button>
+              </div>
+              <div id="hubTestEmailStatus"
+                style="margin-top:8px; font-family:'IBM Plex Mono',monospace; font-size:12px;"></div>
+            </div>
+
+            <!-- Direct Custom Email Composer -->
+            <div class="panel">
+              <h3>✍️ Direct Student Email Composer</h3>
+              <div class="field">
+                <label>Select Student or Enter Email</label>
+                <select id="hubComposerStudentSel" style="margin-bottom:6px;">
+                  <option value="">-- Choose registered student --</option>
+                </select>
+                <input type="email" id="hubComposerEmail" placeholder="Or enter student email address">
+              </div>
+              <div class="field">
+                <label>Subject</label>
+                <input type="text" id="hubComposerSubject"
+                  placeholder="e.g. Special Library Notice regarding your account">
+              </div>
+              <div class="field">
+                <label>Message Content</label>
+                <textarea id="hubComposerMessage" rows="3" placeholder="Write your message here..."></textarea>
+              </div>
+              <button class="action-btn primary" id="btnHubSendCustomEmail" style="width:100%; padding:10px;">📤 Send
+                Email to Student</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Live Sent Email History with Open Preview Links -->
+        <div class="panel" style="margin-top:24px;">
+          <div class="panel-header">
+            <div>
+              <h3>📜 Dispatched Email Logs & Live Web Previews</h3>
+              <div class="panel-sub">History of all 2-day alerts, overdue notices, payment receipts, and test emails
+              </div>
+            </div>
+            <button class="action-btn" id="btnRefreshEmailLogs">🔄 Refresh Logs</button>
+          </div>
+          <div id="hubEmailLogsContainer"></div>
+        </div>
+      </div>
+
+      <!-- 3. STUDENT DASHBOARD -->
+      <div class="view hidden" id="view-student-dashboard">
+        <div class="page-title" id="studentWelcome">Welcome back</div>
+        <div class="page-sub">your borrowed titles, due dates, and fine payments</div>
+
+        <!-- Outstanding Fine Banner (shown if fines exist) -->
+        <div id="studentFineBanner" class="hidden"></div>
+
+        <!-- 2-Day Due Reminder Banner (shown if book due in 2 days) -->
+        <div id="studentDue2Banner" class="hidden"></div>
+
+        <div class="stat-grid">
+          <div class="stat-tile">
+            <div class="num" id="s-borrowed">0</div>
+            <div class="label">Currently borrowed</div>
+          </div>
+          <div class="stat-tile warn">
+            <div class="num" id="s-overdue">0</div>
+            <div class="label">Overdue books</div>
+          </div>
+          <div class="stat-tile warn">
+            <div class="num" id="s-fine">₹0</div>
+            <div class="label">Outstanding fine</div>
+          </div>
+          <div class="stat-tile">
+            <div class="num" id="s-total">0</div>
+            <div class="label">Library titles</div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header">
+            <div>
+              <h3>My Borrowed Books</h3>
+              <div class="panel-sub">Titles currently in your possession with live due dates and fine status</div>
+            </div>
+          </div>
+          <div id="myBooksList"></div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header">
+            <div>
+              <h3>Borrowing & Fine Payment History</h3>
+              <div class="panel-sub">Your previous loans, return timestamps, and payment status</div>
+            </div>
+          </div>
+          <table class="lib-table">
+            <thead>
+              <tr>
+                <th>Title</th>
+                <th>Issued</th>
+                <th>Due</th>
+                <th>Returned</th>
+                <th>Late</th>
+                <th>Fine</th>
+                <th>Status</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="studentHistoryBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- 4. CATALOG VIEW -->
+      <div class="view hidden" id="view-catalog">
+        <div class="page-title">Catalog</div>
+        <div class="page-sub">browse every title in the library collection</div>
+        <div class="controls">
+          <div class="search-box">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8" />
+              <line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+            <input type="text" id="searchInput" placeholder="Search title, author, or call number…">
+          </div>
+          <select class="ctrl" id="genreFilter">
+            <option value="">All genres</option>
+          </select>
+          <button class="add-btn hidden" id="addBookBtn">+ Add a title</button>
+        </div>
+        <div class="grid" id="grid"></div>
+        <div class="empty" id="emptyState" style="display:none;">No titles match. Try clearing your search or filters.
+        </div>
+      </div>
+
+      <!-- 5. ISSUE BOOK VIEW -->
+      <div class="view hidden" id="view-issue">
+        <div class="page-title">Issue a book</div>
+        <div class="page-sub">assign an available title to a registered student</div>
+        <div class="panel issue-form">
+          <div id="issueStudentInfo"
+            style="margin-bottom:14px; display:none; border-radius:4px; padding:12px; background:var(--sage);">
+            <div style="font-weight:600; margin-bottom:4px;">Issuing to</div>
+            <div id="issueStudentName" style="font-weight:bold;"></div>
+            <div id="issueStudentId" style="color:#555; font-size:12.5px;"></div>
+            <div id="issueStudentEmail" style="color:#555; font-size:12.5px;"></div>
+          </div>
+          <div class="field">
+            <label>Student</label>
+            <select id="issueStudent"></select>
+          </div>
+          <div class="field">
+            <label>Search books</label>
+            <div class="search-box"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                stroke-width="2">
+                <circle cx="11" cy="11" r="8" />
+                <line x1="21" y1="21" x2="16.65" y2="16.65" />
+              </svg>
+              <input type="text" id="issueBookSearch" placeholder="Search title, author, or ID…">
+            </div>
+          </div>
+          <div class="field"><label>Book</label>
+            <select id="issueBook"></select>
+          </div>
+          <div class="field"><label>Loan duration</label>
+            <select id="issueDays">
+              <option value="14">14 days</option>
+              <option value="21">21 days</option>
+              <option value="30">30 days</option>
+              <option value="2">2 days (Test 2-day reminder alert)</option>
+            </select>
+          </div>
+          <div class="summary-box" id="issueSummary"></div>
+          <button class="confirm-btn" id="issueConfirmBtn">Confirm & issue</button>
+        </div>
+      </div>
+
+      <!-- 6. RETURN BOOK VIEW -->
+      <div class="view hidden" id="view-return">
+        <div class="page-title">Return a book</div>
+        <div class="page-sub">calculate ₹10/day fine for overdue books & close out loan</div>
+        <div class="panel">
+          <table class="lib-table" id="returnTable">
+            <thead>
+              <tr>
+                <th>Title</th>
+                <th>Borrower</th>
+                <th>Issued</th>
+                <th>Due Date</th>
+                <th>Overdue Days</th>
+                <th>Calculated Fine (₹10/d)</th>
+                <th>Status</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="returnTableBody"></tbody>
+          </table>
+          <div class="empty" id="returnEmpty" style="display:none; padding:30px 0;">No books are currently on loan.
+          </div>
+        </div>
+      </div>
+
+      <!-- 7. STUDENTS LIST VIEW -->
+      <div class="view hidden" id="view-students">
+        <div class="page-title">Students</div>
+        <div class="page-sub">registered borrowers, active loans & outstanding fines</div>
+        <div class="controls">
+          <div class="search-box">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8" />
+              <line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+            <input type="text" id="studentListSearchInput" placeholder="Search student name, ID, or email…">
+          </div>
+          <span id="studentCount"
+            style="margin-left:14px; font-family:'IBM Plex Mono',monospace; color:#7a7a6e; font-size:13px; align-self:center;">Showing
+            0 students</span>
+          <button class="add-btn" id="addStudentBtn">+ Add a student</button>
+        </div>
+        <div class="panel">
+          <table class="lib-table">
+            <thead>
+              <tr>
+                <th>Name & Email</th>
+                <th>Username</th>
+                <th>Books Checked Out</th>
+                <th>Outstanding Fine</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="studentsTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- 8. STUDENT PROFILE DETAIL VIEW -->
+      <div class="view hidden" id="view-student-profile">
+        <div class="page-title">Student Details</div>
+        <div class="page-sub">account summary, active loans, and fine clearance</div>
+        <div class="profile-header" style="margin-bottom:16px;">
+          <button class="action-btn" id="profileBackBtn">← Back to students</button>
+        </div>
+        <div class="panel student-profile-panel">
+          <div class="student-summary">
+            <div><strong>Name</strong>
+              <div id="profileName"></div>
+            </div>
+            <div><strong>Student ID</strong>
+              <div id="profileId"></div>
+            </div>
+            <div><strong>Email</strong>
+              <div id="profileEmail"></div>
+            </div>
+            <div><strong>Outstanding Fine</strong>
+              <div id="profileOutstanding" class="fine-badge" style="font-size:18px;">₹0</div>
+            </div>
+            <div style="margin-top:8px; display:flex; gap:8px; flex-wrap:wrap;">
+              <button class="confirm-btn" id="profileIssueBtn">+ Issue Book</button>
+              <button class="action-btn pay-btn" id="profilePayFineBtn" style="margin-top:14px;">💳 Settle Fine via UPI
+                QR</button>
+            </div>
+          </div>
+        </div>
+        <div class="panel">
+          <h3>Currently Borrowed Books</h3>
+          <table class="lib-table">
+            <thead>
+              <tr>
+                <th>Book Title</th>
+                <th>Issue Date</th>
+                <th>Due Date</th>
+                <th>Time Remaining</th>
+                <th>Accrued Fine</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="profileCurrentBody"></tbody>
+          </table>
+        </div>
+        <div class="panel">
+          <h3>Borrowing History</h3>
+          <table class="lib-table">
+            <thead>
+              <tr>
+                <th>Book Title</th>
+                <th>Return Date</th>
+                <th>Late Days</th>
+                <th>Fine Assessed</th>
+                <th>Status</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="profileHistoryBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ================= MODALS ================= -->
+
+  <!-- 1. UPI QR CODE & PAYMENT SCANNER MODAL (SCANNER ONLY FOR PAYMENTS) -->
+  <div class="modal-backdrop" id="paymentModal">
+    <div class="modal large">
+      <div class="panel-header" style="margin-bottom:10px;">
+        <h3>💳 Fine Payment & UPI QR Scanner</h3>
+        <div class="role-toggle" style="margin-bottom:0; max-width:260px;">
+          <button type="button" class="active" id="tabPayShowQr">📱 Scan Library QR</button>
+          <button type="button" id="tabPayScanner">📷 Payment Scanner</button>
+        </div>
+      </div>
+
+      <!-- Amount Badge -->
+      <div class="qr-amount-box" style="margin-bottom:14px;">
+        <div class="amount-label">Fine Amount to Settle</div>
+        <div class="amount-value" id="qrFineAmount">₹10</div>
+        <div class="rate-note" id="qrFineDescription">Calculated at ₹10 per overdue day</div>
+      </div>
+
+      <!-- TAB 1: Display Scannable UPI QR Code -->
+      <div id="payTabShowQrContent" class="qr-payment-card">
+        <div class="qr-code-frame">
+          <img id="dynamicQrImage" class="qr-code-img" src="" alt="UPI Payment QR Code">
+        </div>
+
+        <div>
+          <div class="upi-id-pill">
+            <span>UPI ID: <b id="displayUpiId">librarypay@upi</b></span>
+            <button type="button" class="copy-btn" id="copyUpiBtn">Copy</button>
+          </div>
+        </div>
+        <p style="font-size:12px; color:#666; margin-bottom:12px;">
+          Scan with Google Pay, PhonePe, Paytm, or any UPI app to pay the exact amount.
+        </p>
+      </div>
+
+      <!-- TAB 2: Camera & Screenshot Payment Scanner -->
+      <div id="payTabScannerContent" class="hidden" style="margin-bottom:14px;">
+        <div class="panel" style="padding:14px; background:var(--card); margin-bottom:12px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+            <strong style="font-size:13px;">📷 Scan Payment QR or Receipt</strong>
+            <div style="display:flex; gap:6px;">
+              <button type="button" class="action-btn primary" id="btnStartPayCam">🎥 Start Camera</button>
+              <button type="button" class="action-btn danger" id="btnStopPayCam" style="display:none;">⏹️ Stop
+                Camera</button>
+            </div>
+          </div>
+
+          <!-- Camera Viewport inside Payment Modal -->
+          <div id="payScannerViewport" class="scanner-viewport" style="min-height:200px;">
+            <div id="payScannerReader" style="width:100%;"></div>
+            <div id="payCamPlaceholder" class="cam-placeholder" style="padding:20px;">
+              <div style="font-size:30px; margin-bottom:4px;">📷</div>
+              <div style="font-weight:600; font-size:13px;">Camera Scanner Idle</div>
+              <div style="font-size:11px; color:#aaa; margin-top:2px;">Scan student UPI QR code or receipt barcode</div>
+            </div>
+          </div>
+
+          <!-- Image Upload Scanner for Payment Screenshots -->
+          <div style="margin-top:10px;">
+            <label
+              style="font-family:'IBM Plex Mono',monospace; font-size:10px; text-transform:uppercase; color:#777; font-weight:600;">Or
+              Scan Payment Screenshot / Image</label>
+            <div class="proof-upload-zone" id="payScanDropZone" style="padding:10px; margin-top:4px;">
+              <input type="file" id="payScanFileInput" accept="image/*" style="display:none;">
+              <div style="font-size:18px;">📁</div>
+              <div style="font-weight:600; font-size:12px;">Click to scan QR from screenshot file</div>
+            </div>
+          </div>
+        </div>
+        <div id="payScanStatusMessage"
+          style="font-family:'IBM Plex Mono',monospace; font-size:12px; margin-bottom:8px;"></div>
+      </div>
+
+      <!-- Transaction Confirmation Form -->
+      <div
+        style="text-align:left; background:var(--card); padding:14px; border-radius:6px; border:1px solid var(--card-shadow);">
+        <div class="field" style="margin-bottom:10px;">
+          <label>UPI Transaction ID / UTR (12 digits or ref)</label>
+          <input type="text" id="payTxnId" placeholder="e.g. 423891029381 or UPI-12345">
+        </div>
+        <div class="field" style="margin-bottom:0;">
+          <label>Upload Payment Screenshot / QR Receipt (Optional)</label>
+          <input type="file" id="payProofFile" accept="image/*">
+          <img id="payProofPreview" class="proof-preview-img hidden" alt="Screenshot Preview">
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn-cancel" id="cancelPaymentBtn">Cancel</button>
+        <button class="btn-confirm" id="confirmPaymentBtn">Confirm & Clear Fine</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. PAYMENT RECEIPT MODAL -->
+  <div class="modal-backdrop" id="receiptModal">
+    <div class="modal">
+      <h3>📄 Library Fine Receipt</h3>
+      <div class="receipt-card" id="receiptContent"></div>
+      <div class="modal-actions">
+        <button class="btn-cancel" id="closeReceiptBtn">Close</button>
+        <button class="btn-confirm" id="printReceiptBtn">🖨️ Print Receipt</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. UPI QR CONFIGURATION MODAL (ADMIN) -->
+  <div class="modal-backdrop" id="paymentSettingsModal">
+    <div class="modal">
+      <h3>💳 UPI & QR Code Settings</h3>
+      <div class="field">
+        <label>Library UPI ID</label>
+        <input type="text" id="cfgUpiId" placeholder="e.g. librarian@okaxis or library@upi">
+      </div>
+      <div class="field">
+        <label>Payee Name</label>
+        <input type="text" id="cfgPayeeName" placeholder="e.g. The Reading Room Library">
+      </div>
+      <div class="field">
+        <label>Upload Custom QR Code Image (Optional)</label>
+        <input type="file" id="cfgQrImageFile" accept="image/*">
+        <div class="hint">Upload your Google Pay / PhonePe / Paytm standee QR code image. If left empty, dynamic UPI QR
+          will be generated.</div>
+        <img id="cfgQrPreview" class="proof-preview-img hidden" alt="Custom QR Preview">
+      </div>
+      <div class="modal-actions">
+        <button class="btn-cancel" id="closePaymentSettingsBtn">Cancel</button>
+        <button class="btn-confirm" id="savePaymentSettingsBtn">Save Settings</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. ADD BOOK MODAL -->
+  <div class="modal-backdrop" id="addModal">
+    <div class="modal">
+      <h3>Add a title to the catalog</h3>
+      <div class="field"><label>Title</label><input type="text" id="fTitle" placeholder="e.g. The Hours"></div>
+      <div class="field"><label>Author</label><input type="text" id="fAuthor" placeholder="e.g. Michael Cunningham">
+      </div>
+      <div class="field"><label>Genre</label><input type="text" id="fGenre" placeholder="e.g. Literary Fiction"></div>
+      <div class="field" style="margin-top:8px;"><label><input type="checkbox" id="assignOnAdd"> Assign / issue this
+          book to a student after adding</label></div>
+      <div id="assignOptions" style="display:none; margin-top:8px;">
+        <div class="field"><label>Student</label>
+          <select id="assignStudentSelect"></select>
+        </div>
+        <div class="field"><label>Loan length</label>
+          <select id="assignLoanDays">
+            <option value="14">14 days</option>
+            <option value="21">21 days</option>
+            <option value="30">30 days</option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-cancel" id="cancelAdd">Cancel</button>
+        <button class="btn-confirm" id="confirmAdd">Add title</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5. REGISTER STUDENT MODAL -->
+  <div class="modal-backdrop" id="addStudentModal">
+    <div class="modal">
+      <h3 id="addStudentTitle">Register a student</h3>
+      <div class="field"><label>Full name</label><input type="text" id="sName" placeholder="e.g. Priya Nair"></div>
+      <div class="field"><label>Username</label><input type="text" id="sUsername" placeholder="e.g. priya"></div>
+      <div class="field"><label>Password</label><input type="password" id="sPassword" placeholder="Choose a password">
+      </div>
+      <div class="field"><label>Email</label><input type="email" id="sEmail" placeholder="e.g. priya@gmail.com"></div>
+      <div class="modal-actions">
+        <button class="btn-cancel" id="cancelAddStudent">Cancel</button>
+        <button class="btn-confirm" id="confirmAddStudent">Register</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 6. VIEW PAYMENT SCREENSHOT PROOF MODAL -->
+  <div class="modal-backdrop" id="proofViewModal">
+    <div class="modal">
+      <h3>🖼️ Payment Proof Screenshot</h3>
+      <div style="text-align:center;">
+        <img id="proofFullImg" src=""
+          style="max-width:100%; max-height:400px; border-radius:6px; border:1px solid var(--card-shadow);"
+          alt="Payment Proof">
+        <div id="proofDetails"
+          style="margin-top:12px; font-family:'IBM Plex Mono',monospace; font-size:12px; color:#555;"></div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-cancel" id="closeProofViewBtn">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="stamp-flash" id="stampFlash">Due Back</div>
+  <script src="script.js"></script>
+</body>
+
+</html>

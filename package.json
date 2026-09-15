@@ -1,0 +1,29 @@
+{
+  "name": "library-management-system",
+  "version": "1.0.0",
+  "description": "Library Management System with Fine Calculation, QR Payments, and Email Notifications",
+  "main": "server/server.js",
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  },
+  "scripts": {
+    "start": "node server/server.js",
+    "dev": "cd server && npm run dev",
+    "build": "cd server && npm install --production",
+    "postinstall": "cd server && npm install",
+    "docker:build": "docker build -t library-management-system .",
+    "docker:run": "docker run -p 5000:5000 -d --name library-system library-management-system",
+    "docker:compose": "docker compose up --build -d"
+  },
+  "keywords": [
+    "library",
+    "management-system",
+    "nodejs",
+    "express",
+    "qr-code",
+    "fine-calculator"
+  ],
+  "author": "",
+  "license": "ISC"
+}

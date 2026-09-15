@@ -1,0 +1,10 @@
+{
+  "mode": "gmail",
+  "service": "gmail",
+  "host": "smtp.gmail.com",
+  "port": 465,
+  "secure": true,
+  "user": "pragathimarpu55@gmail.com",
+  "pass": "gjoa wwwa lspq dvwa",
+  "from": "The Reading Room Library <pragathimarpu55@gmail.com>"
+}
