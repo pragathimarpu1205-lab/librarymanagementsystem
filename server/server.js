@@ -136,6 +136,17 @@ if (fs.existsSync(EMAIL_CONFIG_FILE)) {
   }
 }
 
+// Environment variables take precedence if provided in cloud host (Render, Vercel, etc.)
+if (process.env.EMAIL_USER) {
+  emailSettings.user = process.env.EMAIL_USER.trim();
+  emailSettings.from = `The Reading Room Library <${process.env.EMAIL_USER.trim()}>`;
+  emailSettings.service = 'gmail';
+  emailSettings.mode = 'gmail';
+}
+if (process.env.EMAIL_PASS) {
+  emailSettings.pass = process.env.EMAIL_PASS.trim();
+}
+
 function getTransporter() {
   if (!emailSettings.user || !emailSettings.pass) {
     return null;
