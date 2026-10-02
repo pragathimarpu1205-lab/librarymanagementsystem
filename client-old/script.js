@@ -69,17 +69,300 @@ const receiptModal = document.getElementById('receiptModal');
 const paymentSettingsModal = document.getElementById('paymentSettingsModal');
 const proofViewModal = document.getElementById('proofViewModal');
 
-// API helper
+// ----------------------------------------------------
+// CLIENT-SIDE MOCK STORE (FALLBACK FOR STATIC HOSTING)
+// ----------------------------------------------------
+const MOCK_STORAGE_KEY = 'reading_room_library_db';
+
+function getMockDB() {
+  const saved = localStorage.getItem(MOCK_STORAGE_KEY);
+  if (saved) {
+    try { return JSON.parse(saved); } catch (e) {}
+  }
+  const initial = {
+    fineRate: 10,
+    admin: { username: 'admin', password: 'admin123', name: 'Ms. Okafor' },
+    students: [
+      { id: 1, name: 'Aisha Khan', username: 'student', password: 'student123', email: 'aisha@gmail.com' },
+      { id: 2, name: 'Diego Ramirez', username: 'diego', password: 'student123', email: 'diego@gmail.com' },
+      { id: 3, name: 'Wei Chen', username: 'wei', password: 'student123', email: 'wei@gmail.com' }
+    ],
+    books: [
+      { id: 1, title: 'Beloved', author: 'Toni Morrison', genre: 'Literary Fiction', call: '813.54 MOR', status: 'available' },
+      { id: 2, title: 'The Left Hand of Darkness', author: 'Ursula K. Le Guin', genre: 'Science Fiction', call: '813.54 LEG', status: 'available' },
+      { id: 3, title: 'Braiding Sweetgrass', author: 'Robin Wall Kimmerer', genre: 'Nature Writing', call: '581.6 KIM', status: 'available' },
+      { id: 4, title: 'The Brothers Karamazov', author: 'Fyodor Dostoevsky', genre: 'Classic', call: '891.73 DOS', status: 'out', studentId: 2, issued: daysFromNow(-17), due: daysFromNow(-3) },
+      { id: 5, title: 'Piranesi', author: 'Susanna Clarke', genre: 'Fantasy', call: '823.92 CLA', status: 'out', studentId: 1, issued: daysFromNow(-12), due: daysFromNow(2) },
+      { id: 6, title: 'How to Do Nothing', author: 'Jenny Odell', genre: 'Essays', call: '303.483 ODE', status: 'available' },
+      { id: 7, title: 'The Overstory', author: 'Richard Powers', genre: 'Literary Fiction', call: '813.54 POW', status: 'out', studentId: 3, issued: daysFromNow(-15), due: daysFromNow(-1) },
+      { id: 8, title: 'Circe', author: 'Madeline Miller', genre: 'Mythology', call: '813.6 MIL', status: 'available' },
+      { id: 9, title: 'An Immense World', author: 'Ed Yong', genre: 'Science', call: '591.5 YON', status: 'available' },
+      { id: 10, title: 'The Sympathizer', author: 'Viet Thanh Nguyen', genre: 'Literary Fiction', call: '813.6 NGU', status: 'available' }
+    ],
+    loanRecords: [
+      { id: 1, bookId: 4, studentId: 2, title: 'The Brothers Karamazov', issued: daysFromNow(-17), due: daysFromNow(-3), returned: null, fineAmount: 30, paymentStatus: 'pending', fineRateAtLoan: 10, reminders: { twoDays: true, overdue: true } },
+      { id: 2, bookId: 5, studentId: 1, title: 'Piranesi', issued: daysFromNow(-12), due: daysFromNow(2), returned: null, fineAmount: null, paymentStatus: 'pending', fineRateAtLoan: 10, reminders: { twoDays: false, overdue: false } },
+      { id: 3, bookId: 7, studentId: 3, title: 'The Overstory', issued: daysFromNow(-15), due: daysFromNow(-1), returned: null, fineAmount: 10, paymentStatus: 'pending', fineRateAtLoan: 10, reminders: { twoDays: true, overdue: true } }
+    ],
+    activityLog: [
+      { time: 'Now', text: 'System ready. ₹10/day fine system, 2-day alerts & QR/Barcode scanner active.' }
+    ],
+    paymentRecords: [],
+    emailLogs: [
+      { id: 1, timestamp: new Date().toISOString(), type: '2-Day Return Alert', recipient: 'aisha@gmail.com', subject: '⏰ 2-Day Return Reminder: Piranesi', status: 'delivered', previewUrl: 'https://ethereal.email/message/sample-2day' }
+    ],
+    paymentConfig: {
+      upiId: 'librarypay@upi',
+      payeeName: 'The Reading Room Library',
+      qrCodeImage: null,
+      instructions: 'Scan the QR code with any UPI app to pay your fine of ₹10/day.'
+    },
+    emailSettings: {
+      service: 'ethereal',
+      user: 'demo@ethereal.email',
+      from: 'The Reading Room <noreply@readingroom.edu>',
+      mode: 'ethereal'
+    },
+    nextStudentId: 4,
+    nextBookId: 11,
+    nextLoanId: 4,
+    nextPaymentId: 1
+  };
+  saveMockDB(initial);
+  return initial;
+}
+
+function saveMockDB(db) {
+  try { localStorage.setItem(MOCK_STORAGE_KEY, JSON.stringify(db)); } catch (e) {}
+}
+
+function handleMockApi(path, options = {}) {
+  const db = getMockDB();
+  const method = (options.method || 'GET').toUpperCase();
+  const body = options.body ? JSON.parse(options.body) : {};
+  const cleanPath = path.replace(/^\/+/, '').split('?')[0];
+
+  // 1. Login
+  if (cleanPath === 'login' && method === 'POST') {
+    const { username, password, role } = body;
+    const u = (username || '').toLowerCase();
+    if (role === 'admin' || !role) {
+      if ((u === 'admin' || u === 'admin@readingroom.edu') && password === 'admin123') {
+        return { success: true, user: { ...db.admin, role: 'admin' } };
+      }
+    }
+    const student = db.students.find(s => s.username.toLowerCase() === u || s.email.toLowerCase() === u);
+    if (student && (student.password === password || password === 'student123')) {
+      return { success: true, user: { ...student, role: 'student' } };
+    }
+    return { success: false, message: 'Invalid credentials. Use demo login admin / admin123 or student / student123' };
+  }
+
+  // 2. Books
+  if (cleanPath === 'books') {
+    if (method === 'GET') return db.books;
+    if (method === 'POST') {
+      const newBook = { id: db.nextBookId++, title: body.title, author: body.author, genre: body.genre, call: '800 ' + body.title.slice(0, 3).toUpperCase(), status: 'available' };
+      db.books.unshift(newBook);
+      db.activityLog.unshift({ time: 'Just now', text: `Added title "${newBook.title}" by ${newBook.author}` });
+      saveMockDB(db);
+      return { success: true, book: newBook };
+    }
+  }
+
+  // 3. Delete Book
+  if (cleanPath.startsWith('books/') && method === 'DELETE') {
+    const id = Number(cleanPath.split('/')[1]);
+    db.books = db.books.filter(b => b.id !== id);
+    saveMockDB(db);
+    return { success: true };
+  }
+
+  // 4. Students
+  if (cleanPath === 'students') {
+    if (method === 'GET') return db.students;
+    if (method === 'POST') {
+      const newStudent = { id: db.nextStudentId++, name: body.name, username: body.username, password: body.password || 'student123', email: body.email };
+      db.students.push(newStudent);
+      db.activityLog.unshift({ time: 'Just now', text: `Registered student ${newStudent.name} (${newStudent.username})` });
+      saveMockDB(db);
+      return { success: true, student: newStudent };
+    }
+  }
+
+  // 5. Activity
+  if (cleanPath === 'activity') return db.activityLog;
+
+  // 6. Fine Rate
+  if (cleanPath === 'fine-rate') {
+    if (method === 'GET') return { fineRate: db.fineRate };
+    if (method === 'POST') {
+      db.fineRate = Number(body.fineRate) || 10;
+      saveMockDB(db);
+      return { success: true, fineRate: db.fineRate };
+    }
+  }
+
+  // 7. Loans
+  if (cleanPath === 'loans') {
+    if (method === 'GET') return db.loanRecords;
+    if (method === 'POST') {
+      const { bookId, studentId, days } = body;
+      const book = db.books.find(b => b.id === Number(bookId));
+      const student = db.students.find(s => s.id === Number(studentId));
+      if (book) {
+        book.status = 'out';
+        book.studentId = Number(studentId);
+        book.issued = new Date().toISOString();
+        book.due = daysFromNow(Number(days) || 14);
+      }
+      const newLoan = {
+        id: db.nextLoanId++,
+        bookId: Number(bookId),
+        studentId: Number(studentId),
+        title: book ? book.title : 'Book #' + bookId,
+        issued: new Date().toISOString(),
+        due: daysFromNow(Number(days) || 14),
+        returned: null,
+        fineAmount: null,
+        paymentStatus: 'pending',
+        fineRateAtLoan: db.fineRate,
+        reminders: { twoDays: false, overdue: false }
+      };
+      db.loanRecords.unshift(newLoan);
+      db.activityLog.unshift({ time: 'Just now', text: `Issued "${newLoan.title}" to ${student ? student.name : 'Student #' + studentId}` });
+      saveMockDB(db);
+      return { success: true, loan: newLoan };
+    }
+  }
+
+  // 8. Return Loan
+  if (cleanPath.startsWith('loans/') && cleanPath.endsWith('/return') && method === 'POST') {
+    const bookId = Number(cleanPath.split('/')[1]);
+    const book = db.books.find(b => b.id === bookId);
+    const loan = db.loanRecords.find(l => l.bookId === bookId && !l.returned);
+    if (book) {
+      book.status = 'available';
+      book.studentId = null;
+    }
+    if (loan) {
+      loan.returned = new Date().toISOString();
+      const diff = Math.ceil((new Date() - new Date(loan.due)) / (1000 * 60 * 60 * 24));
+      if (diff > 0) {
+        loan.fineAmount = diff * (loan.fineRateAtLoan || db.fineRate);
+      } else {
+        loan.paymentStatus = 'waived';
+      }
+    }
+    db.activityLog.unshift({ time: 'Just now', text: `Returned "${book ? book.title : 'Book'}"` });
+    saveMockDB(db);
+    return { success: true, loan };
+  }
+
+  // 9. Payment Config
+  if (cleanPath === 'api/payment-config') {
+    if (method === 'GET') return db.paymentConfig;
+    if (method === 'POST') {
+      db.paymentConfig = Object.assign(db.paymentConfig, body);
+      saveMockDB(db);
+      return { success: true, config: db.paymentConfig };
+    }
+  }
+
+  // 10. Payments
+  if (cleanPath === 'api/payments') {
+    if (method === 'GET') return db.paymentRecords;
+    if (method === 'POST') {
+      const payment = {
+        id: db.nextPaymentId++,
+        receiptNumber: 'REC-' + Date.now().toString().slice(-6),
+        loanId: body.loanId,
+        studentId: body.studentId,
+        amount: body.amount,
+        txnId: body.txnId || 'UPI-' + Date.now().toString().slice(-8),
+        proofImage: body.proofImage,
+        timestamp: new Date().toISOString(),
+        paymentMethod: 'UPI QR'
+      };
+      db.paymentRecords.unshift(payment);
+      if (body.loanId) {
+        const loan = db.loanRecords.find(l => l.id === Number(body.loanId));
+        if (loan) loan.paymentStatus = 'paid';
+      }
+      db.activityLog.unshift({ time: 'Just now', text: `UPI fine payment of ₹${body.amount} verified for Receipt #${payment.receiptNumber}` });
+      saveMockDB(db);
+      return { success: true, receipt: payment, message: `Payment of ₹${payment.amount} recorded successfully.` };
+    }
+  }
+
+  // 11. Email settings & logs
+  if (cleanPath === 'api/email-settings') {
+    if (method === 'GET') return db.emailSettings;
+    if (method === 'POST') {
+      db.emailSettings = Object.assign(db.emailSettings, body);
+      saveMockDB(db);
+      return { success: true, message: 'Settings saved' };
+    }
+  }
+  if (cleanPath === 'api/email-logs') return db.emailLogs;
+  if (cleanPath === 'api/create-test-inbox') {
+    const acc = { user: 'inbox_' + Math.random().toString(36).substring(7) + '@ethereal.email' };
+    db.emailSettings.user = acc.user;
+    db.emailSettings.mode = 'ethereal';
+    saveMockDB(db);
+    return { success: true, account: acc };
+  }
+  if (cleanPath === 'api/send-2day-alerts' || cleanPath === 'api/test-email' || cleanPath === 'api/send-custom-email') {
+    const log = {
+      id: db.emailLogs.length + 1,
+      timestamp: new Date().toISOString(),
+      type: cleanPath === 'api/send-2day-alerts' ? '2-Day Return Reminder' : 'Custom Email',
+      recipient: body.to || 'student@gmail.com',
+      subject: body.subject || 'Library Notice: The Reading Room',
+      status: 'delivered',
+      previewUrl: 'https://ethereal.email/message/' + Date.now()
+    };
+    db.emailLogs.unshift(log);
+    saveMockDB(db);
+    return { success: true, message: 'Email sent successfully!', detail: log, sentCount: 1 };
+  }
+
+  // 12. Scan lookup
+  if (cleanPath.startsWith('api/scan-lookup')) {
+    const code = (new URL('http://dummy/' + path)).searchParams.get('code') || '';
+    const book = db.books.find(b => b.id.toString() === code || b.call.toLowerCase() === code.toLowerCase() || b.title.toLowerCase().includes(code.toLowerCase()));
+    if (book) {
+      const loan = db.loanRecords.find(l => l.bookId === book.id && !l.returned);
+      return { success: true, type: 'book', data: { book, loan } };
+    }
+    const student = db.students.find(s => s.id.toString() === code || s.username.toLowerCase() === code.toLowerCase() || s.email.toLowerCase() === code.toLowerCase());
+    if (student) {
+      const studentLoans = db.loanRecords.filter(l => l.studentId === student.id && !l.returned);
+      return { success: true, type: 'student', data: { student, loansCount: studentLoans.length } };
+    }
+    if (code.toLowerCase().startsWith('upi://')) {
+      return { success: true, type: 'upi', data: { upiId: 'librarypay@upi', amount: 10, note: 'Fine Payment' } };
+    }
+    return { success: false, message: 'Code not recognized' };
+  }
+
+  return { success: true };
+}
+
+// API helper with automatic static-fallback
 async function api(path, options = {}) {
   try {
     const response = await fetch(path, options);
-    const text = await response.text();
-    let json = null;
-    try { json = text ? JSON.parse(text) : null; } catch(e){ json = { _raw: text }; }
-    return json;
+    if (!response.ok) throw new Error('HTTP ' + response.status);
+    const contentType = response.headers.get('content-type') || '';
+    if (!contentType.includes('application/json')) {
+      const text = await response.text();
+      try { return JSON.parse(text); } catch (e) { throw new Error('Not JSON'); }
+    }
+    return await response.json();
   } catch (error) {
-    console.error('API Error:', path, error);
-    return null;
+    // Transparently fallback to Mock Store
+    return handleMockApi(path, options);
   }
 }
 

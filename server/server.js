@@ -189,7 +189,7 @@ function getTransporter() {
 }
 
 function escapeHtml(value) {
-  return String(value || '').replace(/[&<>"]+/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[ch]);
+  return String(value || '').replace(/[&<>"]+/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[ch]);
 }
 
 function formatStudent(student) {
@@ -288,7 +288,7 @@ async function sendEmail(options) {
       ...options
     });
     console.log('[EMAIL SENT]', options.subject, 'to', options.to, 'MessageId:', info.messageId);
-    
+
     // Check if an Ethereal preview URL is available
     const previewUrl = nodemailer.getTestMessageUrl(info);
     if (previewUrl) {
@@ -324,7 +324,7 @@ async function scheduleDueNotifications() {
     if (!student || !record.due) continue;
 
     const dueDate = new Date(record.due);
-    const diffMs = dueDate.setHours(0,0,0,0) - new Date(now).setHours(0,0,0,0);
+    const diffMs = dueDate.setHours(0, 0, 0, 0) - new Date(now).setHours(0, 0, 0, 0);
     const daysUntilDue = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
     const title = record.title;
     const dueText = new Date(record.due).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
@@ -348,7 +348,7 @@ async function scheduleDueNotifications() {
         <p>Please return or renew the book on or before <b>${dueText}</b> to avoid an overdue fine of <b>₹${fineRate} per day</b>.</p>
       `;
       const text = `Dear ${student.name},\n\nYour borrowed book "${title}" is due in 2 days on ${dueText}.\n\nPlease return the book on or before ${dueText} to avoid late fines of ₹${fineRate}/day.\n\nThank you,\nThe Reading Room Library`;
-      
+
       const html = generateEmailTemplate({
         heading: 'Book Return Reminder — 2 Days Remaining',
         alertText: alertHtml,
@@ -379,7 +379,7 @@ async function scheduleDueNotifications() {
         <p>Please return the book immediately to the library circulation desk and settle the fine via UPI QR code or cash.</p>
       `;
       const text = `Dear ${student.name},\n\nYour borrowed book "${title}" was due on ${dueText} and is now ${daysLate} day(s) overdue.\n\nAccrued late fine: ₹${fineAmount} (₹${fineRate}/day).\n\nPlease return the book immediately.\n\nThank you,\nThe Reading Room Library`;
-      
+
       const html = generateEmailTemplate({
         heading: 'Overdue Book Notice',
         alertText: alertHtml,
@@ -471,7 +471,7 @@ app.get('/students/:id', (req, res) => {
   const now = new Date();
   const currentLoans = loanRecords.filter(r => r.studentId === id && !r.returned).map(r => {
     const dueDate = new Date(r.due);
-    const diffMs = dueDate.setHours(0,0,0,0) - new Date(now).setHours(0,0,0,0);
+    const diffMs = dueDate.setHours(0, 0, 0, 0) - new Date(now).setHours(0, 0, 0, 0);
     const daysRemaining = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
     const isOverdue = daysRemaining < 0;
     const overdueDays = isOverdue ? Math.abs(daysRemaining) : 0;
@@ -534,7 +534,7 @@ app.get('/admin-stats', (req, res) => {
       }
     } else {
       const dueDate = new Date(r.due);
-      const diffMs = dueDate.setHours(0,0,0,0) - new Date(now).setHours(0,0,0,0);
+      const diffMs = dueDate.setHours(0, 0, 0, 0) - new Date(now).setHours(0, 0, 0, 0);
       const daysUntilDue = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
       const student = students.find(s => s.id === r.studentId);
 
@@ -614,7 +614,7 @@ app.post('/students', (req, res) => {
       heading: `Welcome, ${name}!`,
       bodyHtml: `<p>Your student membership is now active.</p><p>You can browse the collection, borrow titles, and track your loans online.</p>`
     })
-  }).catch(() => {});
+  }).catch(() => { });
 
   res.json({ success: true, student: formatStudent(newStudent) });
 });
@@ -681,7 +681,7 @@ app.post('/issue', async (req, res) => {
         </div>
       `
     })
-  }).catch(() => {});
+  }).catch(() => { });
 
   res.json({ success: true, loan });
 });
@@ -733,7 +733,7 @@ app.post('/return', (req, res) => {
           <p>Please log in to your student dashboard to complete the fine payment via UPI QR code.</p>
         `
       })
-    }).catch(() => {});
+    }).catch(() => { });
   }
 
   res.json({ success: true, fineAmount, paymentStatus, loanId: loan ? loan.id : null });
@@ -1192,7 +1192,7 @@ app.post('/api/pay-fine', async (req, res) => {
           </div>
         `
       })
-    }).catch(() => {});
+    }).catch(() => { });
   }
 
   res.json({
