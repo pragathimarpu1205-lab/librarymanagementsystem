@@ -1313,10 +1313,98 @@ async function renderAdminDashboard() {
     `<div class="activity-row"><span class="time" style="color:var(--brass-dark); font-weight:600; margin-right:8px;">[${escapeHtml(a.time)}]</span>${escapeHtml(a.text)}</div>`
   ).join('');
 
-  // 4. Render Recent Fine Payments List
+  // 4. Render Recent Checkouts (SMS-confirmed issue_alert logs)
+  renderRecentCheckouts();
+
+  // 5. Render Recent Fine Payments List
   renderPaymentsList();
   renderStudentSearchResults();
 }
+
+// ----------------------------------------------------
+// RECENT CHECKOUTS TABLE (Admin Dashboard)
+// ----------------------------------------------------
+
+function renderRecentCheckouts() {
+  const container = document.getElementById('recentCheckoutsList');
+  if (!container) return;
+
+  // Pull checkout records from loanRecords (all active + recent returned)
+  const allLoans = loanRecords.slice().sort((a, b) => new Date(b.issuedTimestamp || b.issued) - new Date(a.issuedTimestamp || a.issued));
+  
+  // Also merge SMS issue_alert logs for phone number & SMS status
+  const issueLogs = smsLogs.filter(s => s.type === 'issue_alert');
+
+  if (allLoans.length === 0) {
+    container.innerHTML = '<div style="color:#7a7a6e; font-family:\'IBM Plex Mono\',monospace; font-size:12.5px; padding:10px 0;">No book checkouts recorded yet. Issue a book to see checkout details here.</div>';
+    return;
+  }
+
+  container.innerHTML = `
+    <table class="lib-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Student Name</th>
+          <th>Phone</th>
+          <th>Book Title</th>
+          <th>Checkout Date</th>
+          <th>Checkout Time</th>
+          <th>Due Date</th>
+          <th>Status</th>
+          <th>SMS Sent</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${allLoans.slice(0, 20).map((loan, idx) => {
+          const student = students.find(s => s.id === loan.studentId);
+          const phone = loan.studentPhone || (student ? student.phone : '') || '—';
+          const smsLog = issueLogs.find(s =>
+            (s.studentName && loan.studentName && s.studentName === loan.studentName) ||
+            (s.bookTitle && loan.title && s.bookTitle === loan.title && s.to && phone && s.to.replace(/\s+/g,'') === phone.replace(/\s+/g,''))
+          );
+          const smsSent = smsLog
+            ? `<span class="pill paid" style="font-size:11px;">✅ SMS Delivered<br><span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#555;">${escapeHtml(smsLog.to)}</span></span>`
+            : '<span class="pill pending" style="font-size:11px;">📤 Logged</span>';
+
+          const statusBadge = loan.returned
+            ? `<span class="pill paid">✓ Returned</span>`
+            : `<span class="pill" style="background:#e8f5e9;color:#1b5e20;border-color:#a5d6a7;">📖 Issued</span>`;
+
+          const checkoutDate = loan.issuedDate || (loan.issued ? new Date(loan.issued).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—');
+          const checkoutTime = loan.issuedTime || '—';
+          const dueDate = loan.dueText || (loan.due ? new Date(loan.due).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—');
+
+          return `
+            <tr>
+              <td style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#888;">${idx + 1}</td>
+              <td>
+                <b>${escapeHtml(loan.studentName || (student ? student.name : 'Unknown'))}</b>
+                ${student ? `<div style="font-size:11px;color:#888;font-family:'IBM Plex Mono',monospace;">${escapeHtml(student.email || '')}</div>` : ''}
+              </td>
+              <td style="font-family:'IBM Plex Mono',monospace;font-size:12px;">${escapeHtml(phone)}</td>
+              <td>
+                <b>${escapeHtml(loan.title)}</b>
+                ${loan.author ? `<div style="font-size:11px;color:#888;">by ${escapeHtml(loan.author)}</div>` : ''}
+              </td>
+              <td style="font-family:'IBM Plex Mono',monospace;font-size:12.5px;color:#152b21;font-weight:600;">
+                📅 ${escapeHtml(checkoutDate)}
+              </td>
+              <td style="font-family:'IBM Plex Mono',monospace;font-size:12.5px;color:#b8935a;font-weight:600;">
+                🕐 ${escapeHtml(checkoutTime)}
+              </td>
+              <td style="font-family:'IBM Plex Mono',monospace;font-size:12px;">${escapeHtml(dueDate)}</td>
+              <td>${statusBadge}</td>
+              <td>${smsSent}</td>
+            </tr>
+          `;
+        }).join('')}
+      </tbody>
+    </table>
+  `;
+}
+
+
 
 function renderPaymentsList() {
   const container = document.getElementById('paymentsList');
@@ -2806,6 +2894,12 @@ refreshPaymentsBtn?.addEventListener('click', async () => {
   await refreshAllData();
   renderPaymentsList();
 });
+
+document.getElementById('refreshCheckoutsBtn')?.addEventListener('click', async () => {
+  await refreshAllData();
+  renderRecentCheckouts();
+});
+
 
 document.getElementById('searchInput')?.addEventListener('input', renderCatalog);
 document.getElementById('genreFilter')?.addEventListener('change', renderCatalog);
