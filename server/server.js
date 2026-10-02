@@ -3,6 +3,7 @@ const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
 const nodemailer = require('nodemailer');
+const { readableBooks, generateBookContent } = require('./booksData');
 
 const app = express();
 app.use(cors());
@@ -34,31 +35,41 @@ function daysFromNow(days) {
 }
 
 let students = [
-  { id: 1, name: 'Aisha Khan', username: 'student', password: 'student123', email: 'aisha@gmail.com' },
-  { id: 2, name: 'Diego Ramirez', username: 'diego', password: 'student123', email: 'diego@gmail.com' },
-  { id: 3, name: 'Wei Chen', username: 'wei', password: 'student123', email: 'wei@gmail.com' }
+  { id: 1, name: 'Aisha Khan', username: 'student', password: 'student123', email: 'aisha@gmail.com', phone: '+91 98765 43210' },
+  { id: 2, name: 'Diego Ramirez', username: 'diego', password: 'student123', email: 'diego@gmail.com', phone: '+91 98765 43211' },
+  { id: 3, name: 'Wei Chen', username: 'wei', password: 'student123', email: 'wei@gmail.com', phone: '+91 98765 43212' }
 ];
 
-let books = [
-  { id: 1, title: 'Beloved', author: 'Toni Morrison', genre: 'Literary Fiction', call: '813.54 MOR', status: 'available' },
-  { id: 2, title: 'The Left Hand of Darkness', author: 'Ursula K. Le Guin', genre: 'Science Fiction', call: '813.54 LEG', status: 'available' },
-  { id: 3, title: 'Braiding Sweetgrass', author: 'Robin Wall Kimmerer', genre: 'Nature Writing', call: '581.6 KIM', status: 'available' },
-  { id: 4, title: 'The Brothers Karamazov', author: 'Fyodor Dostoevsky', genre: 'Classic', call: '891.73 DOS', status: 'out', studentId: 2, issued: daysFromNow(-17), due: daysFromNow(-3) },
-  { id: 5, title: 'Piranesi', author: 'Susanna Clarke', genre: 'Fantasy', call: '823.92 CLA', status: 'out', studentId: 1, issued: daysFromNow(-12), due: daysFromNow(2) },
-  { id: 6, title: 'How to Do Nothing', author: 'Jenny Odell', genre: 'Essays', call: '303.483 ODE', status: 'available' },
-  { id: 7, title: 'The Overstory', author: 'Richard Powers', genre: 'Literary Fiction', call: '813.54 POW', status: 'out', studentId: 3, issued: daysFromNow(-15), due: daysFromNow(-1) },
-  { id: 8, title: 'Circe', author: 'Madeline Miller', genre: 'Mythology', call: '813.6 MIL', status: 'available' },
-  { id: 9, title: 'An Immense World', author: 'Ed Yong', genre: 'Science', call: '591.5 YON', status: 'available' },
-  { id: 10, title: 'The Sympathizer', author: 'Viet Thanh Nguyen', genre: 'Literary Fiction', call: '813.6 NGU', status: 'available' }
-];
+// Initialize books with full readable chapter content
+let books = readableBooks.map(b => {
+  const cloned = JSON.parse(JSON.stringify(b));
+  if (cloned.id === 4) {
+    cloned.status = 'out';
+    cloned.studentId = 2;
+    cloned.issued = daysFromNow(-17);
+    cloned.due = daysFromNow(-3);
+  } else if (cloned.id === 5) {
+    cloned.status = 'out';
+    cloned.studentId = 1;
+    cloned.issued = daysFromNow(-12);
+    cloned.due = daysFromNow(2);
+  } else if (cloned.id === 7) {
+    cloned.status = 'out';
+    cloned.studentId = 3;
+    cloned.issued = daysFromNow(-15);
+    cloned.due = daysFromNow(-1);
+  }
+  return cloned;
+});
 
 let nextStudentId = 4;
 let nextBookId = 11;
 let nextLoanId = 4;
 let nextPaymentId = 1;
+let nextSmsId = 1;
 
 let activityLog = [
-  { time: 'Now', text: 'System ready. ₹10/day fine system, 2-day alerts & QR/Barcode scanner active.' }
+  { time: 'Now', text: 'System ready. ₹10/day fine system, 2-day alerts, SMS dispatch & Real Book Flip Reader active.' }
 ];
 
 let loanRecords = [
@@ -73,6 +84,8 @@ let loanRecords = [
     fineAmount: 30,
     paymentStatus: 'pending',
     fineRateAtLoan: fineRate,
+    issuedTime: '10:30 AM',
+    issuedDate: new Date(daysFromNow(-17)).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
     reminders: { twoDays: true, threeDays: false, oneDay: false, due: false, overdue: true }
   },
   {
@@ -86,6 +99,8 @@ let loanRecords = [
     fineAmount: null,
     paymentStatus: 'pending',
     fineRateAtLoan: fineRate,
+    issuedTime: '02:15 PM',
+    issuedDate: new Date(daysFromNow(-12)).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
     reminders: { twoDays: false, threeDays: false, oneDay: false, due: false, overdue: false }
   },
   {
@@ -99,12 +114,60 @@ let loanRecords = [
     fineAmount: 10,
     paymentStatus: 'pending',
     fineRateAtLoan: fineRate,
+    issuedTime: '11:45 AM',
+    issuedDate: new Date(daysFromNow(-15)).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
     reminders: { twoDays: true, threeDays: false, oneDay: false, due: false, overdue: true }
   }
 ];
 
 let paymentRecords = [];
 let emailLogs = [];
+let smsLogs = [
+  {
+    id: nextSmsId++,
+    type: 'issue_alert',
+    to: '+91 98765 43211',
+    studentName: 'Diego Ramirez',
+    bookTitle: 'The Brothers Karamazov',
+    issuedDate: new Date(daysFromNow(-17)).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
+    issuedTime: '10:30 AM',
+    dueDate: new Date(daysFromNow(-3)).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
+    message: '📚 The Reading Room Library Alert: Hello Diego Ramirez, you have borrowed "The Brothers Karamazov" on ' + new Date(daysFromNow(-17)).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) + ' at 10:30 AM. Due Date: ' + new Date(daysFromNow(-3)).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) + '. Late fine: ₹10/day.',
+    status: 'delivered',
+    timestamp: daysFromNow(-17)
+  },
+  {
+    id: nextSmsId++,
+    type: 'issue_alert',
+    to: '+91 98765 43210',
+    studentName: 'Aisha Khan',
+    bookTitle: 'Piranesi',
+    issuedDate: new Date(daysFromNow(-12)).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
+    issuedTime: '02:15 PM',
+    dueDate: new Date(daysFromNow(2)).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
+    message: '📚 The Reading Room Library Alert: Hello Aisha Khan, you have borrowed "Piranesi" on ' + new Date(daysFromNow(-12)).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) + ' at 02:15 PM. Due Date: ' + new Date(daysFromNow(2)).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) + '. Late fine: ₹10/day.',
+    status: 'delivered',
+    timestamp: daysFromNow(-12)
+  }
+];
+
+function dispatchSmsNotification({ type, to, studentName, bookTitle, message, metadata = {} }) {
+  const logEntry = {
+    id: nextSmsId++,
+    type: type || 'issue_alert',
+    to: to || '+91 98765 43210',
+    studentName: studentName || 'Student',
+    bookTitle: bookTitle || 'Library Title',
+    message,
+    status: 'delivered',
+    timestamp: new Date().toISOString(),
+    ...metadata
+  };
+  smsLogs.unshift(logEntry);
+  if (smsLogs.length > 200) smsLogs.pop();
+  console.log('[SMS DISPATCHED]', logEntry.to, ':', logEntry.message);
+  return logEntry;
+}
 
 // UPI and Payment Configuration
 let paymentConfig = {
@@ -367,8 +430,19 @@ async function scheduleDueNotifications() {
       });
 
       const res = await sendEmail({ to: student.email, subject, text, html });
-      logActivity(`Sent 2-day reminder to ${student.name} for "${title}"`);
-      results.push({ student: student.name, email: student.email, title, type: '2-day-reminder', result: res });
+      
+      // Dispatch 2-Day SMS Notification
+      dispatchSmsNotification({
+        type: '2day_alert',
+        to: student.phone || '+91 98765 43210',
+        studentName: student.name,
+        bookTitle: title,
+        message: `⏰ Library 2-Day Alert: Hello ${student.name}, "${title}" is due in 2 days on ${dueText}. Please return on time to avoid late fines (₹${fineRate}/day).`,
+        metadata: { loanId: record.id, dueDate: dueText }
+      });
+
+      logActivity(`Sent 2-day reminder & SMS to ${student.name} for "${title}"`);
+      results.push({ student: student.name, email: student.email, phone: student.phone, title, type: '2-day-reminder', result: res });
     }
 
     // 2. Overdue notice if overdue and reminder not sent
@@ -398,8 +472,19 @@ async function scheduleDueNotifications() {
       });
 
       const res = await sendEmail({ to: student.email, subject, text, html });
-      logActivity(`Sent overdue notice to ${student.name} for "${title}" (Fine: ₹${fineAmount})`);
-      results.push({ student: student.name, email: student.email, title, type: 'overdue-notice', result: res });
+
+      // Dispatch Overdue SMS Notification
+      dispatchSmsNotification({
+        type: 'overdue_alert',
+        to: student.phone || '+91 98765 43210',
+        studentName: student.name,
+        bookTitle: title,
+        message: `⚠️ Library Overdue Notice: Hello ${student.name}, "${title}" was due on ${dueText} and is now ${daysLate} day(s) overdue. Fine accrued: ₹${fineAmount} (₹${fineRate}/day). Please return immediately.`,
+        metadata: { loanId: record.id, dueDate: dueText, daysLate, fineAmount }
+      });
+
+      logActivity(`Sent overdue notice & SMS to ${student.name} for "${title}" (Fine: ₹${fineAmount})`);
+      results.push({ student: student.name, email: student.email, phone: student.phone, title, type: 'overdue-notice', result: res });
     }
   }
 
@@ -600,21 +685,31 @@ app.get('/admin-stats', (req, res) => {
 
 // Register student
 app.post('/students', (req, res) => {
-  const { name, username, password, email } = req.body;
+  const { name, username, password, email, phone } = req.body;
   if (!name || !username || !password || !email) {
     return res.json({ success: false, message: 'Name, username, email, and password are required.' });
   }
   const cleanUsername = String(username).trim().toLowerCase();
   const cleanEmail = String(email).trim().toLowerCase();
+  const cleanPhone = String(phone || `+91 98765 ${Math.floor(10000 + Math.random() * 90000)}`).trim();
   const exists = students.some(s =>
     String(s.username).toLowerCase() === cleanUsername || String(s.email).toLowerCase() === cleanEmail
   );
   if (exists) {
     return res.json({ success: false, message: 'Username or email already exists. Choose another.' });
   }
-  const newStudent = { id: nextStudentId++, name, username: cleanUsername, password, email: cleanEmail };
+  const newStudent = { id: nextStudentId++, name, username: cleanUsername, password, email: cleanEmail, phone: cleanPhone };
   students.push(newStudent);
-  logActivity(`${name} registered as a new student (${cleanEmail})`);
+  logActivity(`${name} registered as a new student (${cleanEmail}, ${cleanPhone})`);
+
+  // Welcome SMS Notification
+  dispatchSmsNotification({
+    type: 'welcome',
+    to: cleanPhone,
+    studentName: name,
+    bookTitle: 'Library Membership Active',
+    message: `🎉 Welcome to The Reading Room Library, ${name}! Your membership is active. You can now browse our catalog, read digital flipbooks, and borrow titles.`
+  });
 
   // Welcome email
   sendEmail({
@@ -623,14 +718,14 @@ app.post('/students', (req, res) => {
     text: `Hello ${name},\n\nYour library student account has been created successfully!\n\nUsername: ${cleanUsername}\nLogin: http://localhost:5000\n\nHappy reading!`,
     html: generateEmailTemplate({
       heading: `Welcome, ${name}!`,
-      bodyHtml: `<p>Your student membership is now active.</p><p>You can browse the collection, borrow titles, and track your loans online.</p>`
+      bodyHtml: `<p>Your student membership is now active.</p><p>You can browse the collection, borrow titles, read interactive 3D flipbooks, and track your loans online.</p>`
     })
   }).catch(() => { });
 
   res.json({ success: true, student: formatStudent(newStudent) });
 });
 
-// Add book
+// Add book (with rich chapters for digital flipbook reader)
 app.post('/books', (req, res) => {
   const { title, author, genre } = req.body;
   if (!title || !author) {
@@ -638,13 +733,25 @@ app.post('/books', (req, res) => {
   }
   const initials = author.split(' ').pop().slice(0, 3).toUpperCase();
   const call = `${Math.floor(Math.random() * 900 + 100)} ${initials}`;
-  const newBook = { id: nextBookId++, title, author, genre: genre || 'General', call, status: 'available' };
+  const generated = generateBookContent(title, author, genre);
+  const newBook = {
+    id: nextBookId++,
+    title,
+    author,
+    genre: genre || 'General',
+    call,
+    status: 'available',
+    coverTheme: generated.coverTheme,
+    publicationYear: generated.publicationYear,
+    pagesCount: generated.pagesCount,
+    chapters: generated.chapters
+  };
   books.push(newBook);
-  logActivity(`"${title}" added to catalog`);
+  logActivity(`"${title}" added to catalog with 3D Flipbook Reader edition`);
   res.json({ success: true, book: newBook });
 });
 
-// Issue book
+// Issue book (With Exact Date & Time SMS Notification)
 app.post('/issue', async (req, res) => {
   const { studentId, bookId, days } = req.body;
   const book = books.find(b => b.id === Number(bookId));
@@ -653,18 +760,32 @@ app.post('/issue', async (req, res) => {
     return res.json({ success: false, message: 'Unable to issue this book.' });
   }
   const loanDays = Number(days) || 14;
+  const now = new Date();
+  const formattedDate = now.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+  const formattedTime = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+
   book.status = 'out';
   book.studentId = student.id;
   book.issued = daysFromNow(0);
   book.due = daysFromNow(loanDays);
+
+  const dueText = new Date(book.due).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 
   const loan = {
     id: nextLoanId++,
     bookId: book.id,
     studentId: student.id,
     title: book.title,
+    author: book.author,
+    studentName: student.name,
+    studentPhone: student.phone || '+91 98765 43210',
     issued: book.issued,
     due: book.due,
+    issuedDate: formattedDate,
+    issuedTime: formattedTime,
+    issuedTimestamp: now.toISOString(),
+    dueText,
+    loanDays,
     returned: null,
     fineAmount: null,
     paymentStatus: 'pending',
@@ -672,32 +793,56 @@ app.post('/issue', async (req, res) => {
     reminders: { twoDays: false, threeDays: false, oneDay: false, due: false, overdue: false }
   };
   loanRecords.push(loan);
-  logActivity(`"${book.title}" issued to ${student.name} (Due in ${loanDays} days)`);
 
-  const dueText = new Date(loan.due).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+  // Compose Detailed SMS Text Message with exact date and time
+  const smsText = `📚 The Reading Room Library Alert: Hello ${student.name}, you have checked out "${book.title}" by ${book.author} on ${formattedDate} at ${formattedTime}. Due Date: ${dueText} (${loanDays} days). Late fine: ₹${fineRate}/day. Enjoy reading!`;
+
+  // Dispatch SMS Notification
+  const smsRecord = dispatchSmsNotification({
+    type: 'issue_alert',
+    to: student.phone || '+91 98765 43210',
+    studentName: student.name,
+    bookTitle: book.title,
+    message: smsText,
+    metadata: {
+      loanId: loan.id,
+      bookId: book.id,
+      studentId: student.id,
+      issuedDate: formattedDate,
+      issuedTime: formattedTime,
+      dueDate: dueText,
+      loanDays
+    }
+  });
+
+  logActivity(`"${book.title}" issued to ${student.name} on ${formattedDate} at ${formattedTime} (SMS sent to ${student.phone || 'mobile'})`);
+
+  // Email Notification
   sendEmail({
     to: student.email,
-    subject: `Book Issued: "${book.title}"`,
-    text: `Dear ${student.name},\n\nYou have borrowed "${book.title}" by ${book.author}.\nDue Date: ${dueText} (${loanDays} days).\n\nPlease return it on time to avoid a ₹${fineRate}/day fine.`,
+    subject: `Book Issued: "${book.title}" (${formattedDate} at ${formattedTime})`,
+    text: `Dear ${student.name},\n\nYou have borrowed "${book.title}" by ${book.author}.\nIssue Timestamp: ${formattedDate} at ${formattedTime}\nDue Date: ${dueText} (${loanDays} days).\n\nPlease return it on time to avoid a ₹${fineRate}/day fine.`,
     html: generateEmailTemplate({
       heading: 'Book Issued Successfully',
       bodyHtml: `
         <p>Dear <b>${student.name}</b>,</p>
-        <p>You have successfully checked out the following title:</p>
+        <p>You have successfully checked out the following title from the circulation desk:</p>
         <div class="book-details">
           <div class="detail-row"><span class="detail-label">Title</span><span class="detail-value">${book.title}</span></div>
           <div class="detail-row"><span class="detail-label">Author</span><span class="detail-value">${book.author}</span></div>
-          <div class="detail-row"><span class="detail-label">Due Date</span><span class="detail-value" style="color: #152b21;">${dueText}</span></div>
+          <div class="detail-row"><span class="detail-label">Issue Date & Time</span><span class="detail-value" style="color: #152b21;">${formattedDate} at ${formattedTime}</span></div>
+          <div class="detail-row"><span class="detail-label">Due Date</span><span class="detail-value" style="color: #b8935a;">${dueText}</span></div>
           <div class="detail-row"><span class="detail-label">Loan Duration</span><span class="detail-value">${loanDays} Days</span></div>
+          <div class="detail-row"><span class="detail-label">SMS Alert Sent To</span><span class="detail-value">${student.phone || 'Registered Mobile'}</span></div>
         </div>
       `
     })
   }).catch(() => { });
 
-  res.json({ success: true, loan });
+  res.json({ success: true, loan, sms: smsRecord });
 });
 
-// Return book & calculate final fine (₹10/day overdue)
+// Return book & calculate final fine (₹10/day overdue) with SMS receipt
 app.post('/return', (req, res) => {
   const { bookId } = req.body;
   const book = books.find(b => b.id === Number(bookId));
@@ -707,6 +852,8 @@ app.post('/return', (req, res) => {
   const student = students.find(s => s.id === book.studentId);
   const loan = loanRecords.find(r => r.bookId === book.id && !r.returned);
   const returned = new Date().toISOString();
+  const returnDate = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+  const returnTime = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
   let fineAmount = 0;
   let paymentStatus = 'paid';
 
@@ -714,6 +861,8 @@ app.post('/return', (req, res) => {
     fineAmount = calculateFine(loan.due, returned);
     paymentStatus = fineAmount > 0 ? 'pending' : 'paid';
     loan.returned = returned;
+    loan.returnDate = returnDate;
+    loan.returnTime = returnTime;
     loan.fineAmount = fineAmount;
     loan.paymentStatus = paymentStatus;
   }
@@ -723,13 +872,26 @@ app.post('/return', (req, res) => {
   delete book.issued;
   delete book.due;
 
-  logActivity(`"${book.title}" returned by ${student ? student.name : 'a student'}${fineAmount > 0 ? ` (Overdue Fine: ₹${fineAmount})` : ' (On Time)'}`);
+  // Dispatch Return SMS Receipt
+  if (student) {
+    const returnSms = `📚 The Reading Room Library: "${book.title}" returned by ${student.name} on ${returnDate} at ${returnTime}.${fineAmount > 0 ? ` Overdue fine: ₹${fineAmount}. Please settle via UPI QR in student portal.` : ' Returned on time with zero late fine. Thank you!'}`;
+    dispatchSmsNotification({
+      type: 'return_receipt',
+      to: student.phone || '+91 98765 43210',
+      studentName: student.name,
+      bookTitle: book.title,
+      message: returnSms,
+      metadata: { bookId: book.id, studentId: student.id, fineAmount, returnDate, returnTime }
+    });
+  }
+
+  logActivity(`"${book.title}" returned by ${student ? student.name : 'a student'} on ${returnDate} at ${returnTime}${fineAmount > 0 ? ` (Overdue Fine: ₹${fineAmount})` : ' (On Time)'}`);
 
   if (student && fineAmount > 0) {
     sendEmail({
       to: student.email,
       subject: `Book Returned: "${book.title}" — Overdue Fine: ₹${fineAmount}`,
-      text: `Dear ${student.name},\n\n"${book.title}" has been returned. An overdue fine of ₹${fineAmount} (calculated at ₹${fineRate}/day) is pending.\n\nPlease pay using UPI QR code in your dashboard.`,
+      text: `Dear ${student.name},\n\n"${book.title}" has been returned on ${returnDate} at ${returnTime}. An overdue fine of ₹${fineAmount} (calculated at ₹${fineRate}/day) is pending.\n\nPlease pay using UPI QR code in your dashboard.`,
       html: generateEmailTemplate({
         heading: 'Book Returned with Overdue Fine',
         alertText: `Overdue late return fine: <b>₹${fineAmount}</b>`,
@@ -738,7 +900,7 @@ app.post('/return', (req, res) => {
           <p>You have returned <b>"${book.title}"</b> after the scheduled due date.</p>
           <div class="book-details">
             <div class="detail-row"><span class="detail-label">Book Title</span><span class="detail-value">${book.title}</span></div>
-            <div class="detail-row"><span class="detail-label">Return Date</span><span class="detail-value">${new Date().toLocaleDateString('en-GB')}</span></div>
+            <div class="detail-row"><span class="detail-label">Return Date & Time</span><span class="detail-value">${returnDate} at ${returnTime}</span></div>
             <div class="detail-row"><span class="detail-label">Late Fine Total</span><span class="detail-value" style="color: #dc2626;">₹${fineAmount}</span></div>
           </div>
           <p>Please log in to your student dashboard to complete the fine payment via UPI QR code.</p>
@@ -1218,16 +1380,71 @@ app.get('/api/payments', (req, res) => {
   res.json(paymentRecords);
 });
 
-// Legacy loan payment endpoint compatibility
-app.post('/loan/:id/payment', (req, res) => {
-  const loanId = Number(req.params.id);
-  const loan = loanRecords.find(r => r.id === loanId);
-  if (!loan) {
-    return res.json({ success: false, message: 'Loan record not found.' });
+// ----------------------------------------------------
+// SMS ALERTS & DIGITAL BOOK READER ENDPOINTS
+// ----------------------------------------------------
+
+// Get all dispatched SMS notifications
+app.get('/api/sms-logs', (req, res) => {
+  res.json(smsLogs);
+});
+
+// Send custom instant SMS notification
+app.post('/api/send-sms', (req, res) => {
+  const { to, message, studentName, bookTitle, type } = req.body;
+  if (!to || !message) {
+    return res.json({ success: false, message: 'Recipient phone number and message are required.' });
   }
-  loan.paymentStatus = 'paid';
-  logActivity(`Fine marked as paid for "${loan.title}" (loan ${loanId})`);
-  res.json({ success: true });
+
+  const logEntry = dispatchSmsNotification({
+    type: type || 'custom_alert',
+    to,
+    studentName: studentName || 'Student',
+    bookTitle: bookTitle || 'Library Notice',
+    message,
+    metadata: {
+      sentBy: 'admin',
+      deliveryMethod: 'Fast2SMS/Twilio Gateway Simulator'
+    }
+  });
+
+  res.json({
+    success: true,
+    message: `SMS text message delivered to ${to}`,
+    sms: logEntry
+  });
+});
+
+// Get readable book content for flipbook reader
+app.get('/api/books/:id/read', (req, res) => {
+  const id = Number(req.params.id);
+  const book = books.find(b => b.id === id);
+  if (!book) {
+    return res.status(404).json({ success: false, message: 'Book not found.' });
+  }
+  
+  if (!book.chapters || book.chapters.length === 0) {
+    const generated = generateBookContent(book.title, book.author, book.genre);
+    book.chapters = generated.chapters;
+    book.pagesCount = generated.pagesCount;
+    book.coverTheme = generated.coverTheme;
+  }
+
+  res.json({
+    success: true,
+    book: {
+      id: book.id,
+      title: book.title,
+      author: book.author,
+      genre: book.genre,
+      call: book.call,
+      status: book.status,
+      coverTheme: book.coverTheme || 'emerald',
+      publicationYear: book.publicationYear || '2024',
+      pagesCount: book.pagesCount || 6,
+      chapters: book.chapters
+    }
+  });
 });
 
 // Start Server

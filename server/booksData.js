@@ -1,0 +1,417 @@
+// Library Books Catalog with Multi-Chapter Readable Text for Interactive Flipbook E-Reader
+
+const readableBooks = [
+  {
+    id: 1,
+    title: 'Beloved',
+    author: 'Toni Morrison',
+    genre: 'Literary Fiction',
+    call: '813.54 MOR',
+    status: 'available',
+    coverTheme: 'burgundy',
+    publicationYear: '1987',
+    pagesCount: 6,
+    chapters: [
+      {
+        title: 'Chapter 1: 124 Bluestone Road',
+        quote: '"Freeing yourself was one thing, claiming ownership of that freed self was another."',
+        pages: [
+          `124 was spiteful. Full of a baby's venom. The women in the house knew it and so did the children. For years each put up with the spite in his own way, but by 1873 only Sethe and her daughter Denver were left. Her sons, Howard and Buglar, had run away by the time they were thirteen.\n\nSethe and Denver lived in the gray and white house on Bluestone Road, quieted by the memory of sweet home and the ghost that shook the floorboards whenever the kettle boiled.`,
+          `Sethe wiped the flour from her hands onto her apron and looked toward the porch. The sun hung low over the Ohio woods, casting long amber shadows across the gravel lane.\n\n"We have a visitor," Denver whispered, pointing toward the gate. A man in a dark woolen coat stood motionless beneath the sycamore tree, looking at the house as if he had walked across thirty years of memory to reach it.`
+        ]
+      },
+      {
+        title: 'Chapter 2: The Clearing in the Woods',
+        quote: '"In this place, we flesh that weeps, laughs; flesh that dances on grass."',
+        pages: [
+          `In the heart of the clearing, Baby Suggs used to gather the people of the district. She did not preach from a pulpit; she stood upon a great mossy rock and invited everyone to breathe the wild air of Ohio.\n\n"Here," she would say, opening her hands to the crowd, "in this place, we love our hands, for they are our own. We love our feet, for they have run toward freedom."`,
+          `Sethe closed her eyes and could still hear the laughter and singing that echoed off the creek water. The memory was not just of the past—it was a river that flowed through the rooms of 124, refusing to be forgotten.`
+        ]
+      },
+      {
+        title: 'Chapter 3: The Gathering of Rememories',
+        quote: '"Some things just stay. Even after the picture is gone."',
+        pages: [
+          `Paul D sat at the kitchen table, his fingers tracing the knots in the pine wood. "Sethe," he said quietly, "you got two feet, not four."\n\n"I know," Sethe answered softly. "And every step I took brought me here. We can make a life, Paul D. A real life with mornings that don't hurt."`,
+          `Outside, the wind picked up the fallen autumn leaves, swirling them around the porch steps like whispers of an enduring peace.`
+        ]
+      }
+    ]
+  },
+  {
+    id: 2,
+    title: 'The Left Hand of Darkness',
+    author: 'Ursula K. Le Guin',
+    genre: 'Science Fiction',
+    call: '813.54 LEG',
+    status: 'available',
+    coverTheme: 'indigo',
+    publicationYear: '1969',
+    pagesCount: 6,
+    chapters: [
+      {
+        title: 'Chapter 1: A Parade in Erhenrang',
+        quote: '"I will write my report as if I told a story, for I was taught on my home world that Truth is a matter of the imagination."',
+        pages: [
+          `From the Royal Enclosure I looked down upon the capital of Karhide. It was raining over Erhenrang—the slow, heavy, freezing rain of early spring on Gethen.\n\nThe King was laying the keystone of the new port archway with a mortar made of crushed river stone and ground bones. Across the square, the crowds stood in heavy furs, watching without haste.`,
+          `I am Genly Ai, Envoy of the Ekumen. I came alone to this world of Winter to invite its nations to join eighty-three worlds in peaceful commerce and shared thought. But on Gethen, unity is a concept as difficult to grasp as the melt of glacier ice in winter.`
+        ]
+      },
+      {
+        title: 'Chapter 2: The Road Across the Ice',
+        quote: '"Light is the left hand of darkness, and darkness the right hand of light."',
+        pages: [
+          `Estraven walked ahead, pulling the loaded sledge across the crevasse-riddled snowfield of the Gobrin Glacier. The silence of the plateau was absolute, broken only by the rhythmic scrape of our skis.\n\n"In eight days," Estraven called back through the swirling frost, "we will reach the borders of Karhide if the storm spares us."`,
+          `We made camp in a dome of packed snow under the northern aurora. For the first time, across all differences of planet and culture, I looked at Estraven not as an alien diplomat, but as a trusted companion of the road.`
+        ]
+      },
+      {
+        title: 'Chapter 3: The Return to the Hearth',
+        quote: '"To learn what questions are unanswerable, and not to answer them."',
+        pages: [
+          `When the sun returned over the peaks of the Kurrem Range, the ice turned to gold. We knew that the long trek across the roof of Winter was ending.\n\n"Listen," Estraven whispered. Below us, far in the valley, the bells of the valley temple were ringing for the arrival of the spring caravans.`,
+          `I took out my transmitter to send word to the stars. The world called Winter was opening its doors to the wider universe at last.`
+        ]
+      }
+    ]
+  },
+  {
+    id: 3,
+    title: 'Braiding Sweetgrass',
+    author: 'Robin Wall Kimmerer',
+    genre: 'Nature Writing',
+    call: '581.6 KIM',
+    status: 'available',
+    coverTheme: 'emerald',
+    publicationYear: '2013',
+    pagesCount: 6,
+    chapters: [
+      {
+        title: 'Chapter 1: Skywoman Falling',
+        quote: '"In the beginning there was only the sky world above and the dark waters below."',
+        pages: [
+          `In Celtic tradition there are gossamer thresholds where the veil between worlds grows thin. But on the shores of Lake Ontario, under the cedar boughs, that threshold is woven from wild sweetgrass, Wiingaashk, the sweet-smelling hair of Mother Earth.\n\nWhen Skywoman fell from the celestial realm, she held in her clenched hand a bouquet of seeds: the strawberry, the corn, the bean, and the fragrant grass.`,
+          `The geese caught her on their wings. The muskrat dove deep into the abyss to bring up a pawful of mud, placing it on the turtle's back. From that gift of mud and gratitude, Turtle Island—our continent—began to bloom.`
+        ]
+      },
+      {
+        title: 'Chapter 2: The Honorable Harvest',
+        quote: '"Know the ways of the ones who take care of you, so that you may take care of them."',
+        pages: [
+          `The rules of the Honorable Harvest are simple yet demanding: Ask permission before taking. Never take the first one you see. Never take more than half. Give a gift of tobacco or thanksgiving in return.\n\nWhen we harvest sweetgrass by braiding it, we are not taking—we are engaging in a reciprocal conversation with the meadow.`,
+          `The plant responds to our mindful touch. Biologists have found that sweetgrass plots that are carefully harvested actually thrive better than plots left untouched. We are designed to live in partnership with the living world.`
+        ]
+      },
+      {
+        title: 'Chapter 3: The Gift of Pecans',
+        quote: '"All flourishing is mutual."',
+        pages: [
+          `In the southern bottomlands, the pecan groves bear witness to communal intelligence. They do not produce acorns and nuts in isolation; they mast together across entire states.\n\nWhen one tree has a surplus, underground mycelial networks ferry sugars to the trees in the shade. It is a lesson in generosity that human economics is only beginning to understand.`,
+          `We breathe in what the trees exhale; they drink in what we release. The braid of life is never broken if we remember to return the gift.`
+        ]
+      }
+    ]
+  },
+  {
+    id: 4,
+    title: 'The Brothers Karamazov',
+    author: 'Fyodor Dostoevsky',
+    genre: 'Classic',
+    call: '891.73 DOS',
+    status: 'out',
+    coverTheme: 'amber',
+    publicationYear: '1880',
+    pagesCount: 6,
+    chapters: [
+      {
+        title: 'Chapter 1: In the Monk\'s Cell',
+        quote: '"Love all God\'s creation, the whole and every grain of sand in it."',
+        pages: [
+          `Alexey Fyodorovitch Karamazov was the third son of a landowner, Fyodor Pavlovitch Karamazov, well known in our district in his day. Alyosha was not at all a fanatic, and, in the opinion of all who knew him, not even a mystic at all.\n\nHe had chosen to enter the monastery under the guidance of the venerable elder Father Zosima, whose door was open day and night to the poor, the sorrowful, and the seeking.`,
+          `In the quiet cell where the fragrance of dried herbs and incense mingled with wax candles, Alyosha watched the pilgrims gather. Each brought their grief, and each left with a sense of light that seemed born of Father Zosima's quiet smile.`
+        ]
+      },
+      {
+        title: 'Chapter 2: The Grand Inquisitor',
+        quote: '"Man is born a rebel, and can rebels be happy?"',
+        pages: [
+          `Ivan Karamazov leaned across the tavern table toward his brother. "My poem is called The Grand Inquisitor, Alyosha. It takes place in Seville, during the darkest days of the sixteenth century."\n\n"In the scorching marketplace, amidst the autos-da-fé, He appears silently. The crowd recognizes Him at once, and weeping mothers bring forward their children."`,
+          `"The Grand Inquisitor arrests Him in the darkness of the cathedral square and asks: 'Why hast Thou come to hinder us? For Thou hast given men freedom, and freedom is a burden they cannot bear.'" Ivan looked at Alyosha with burning eyes.`
+        ]
+      },
+      {
+        title: 'Chapter 3: The Speech by the Stone',
+        quote: '"Let us always remember how good it was once here, when we were all together."',
+        pages: [
+          `The boys stood around the large stone on the outskirts of the town where young Ilyusha was buried. Alyosha looked at each of the twelve faces gathered in the snow.\n\n"You must know that there is nothing higher and stronger and more wholesome and good for life in the future than some good memory, especially a memory of childhood, of home."`,
+          `"Hurrah for Karamazov!" the boys shouted, their voices ringing across the frozen river into the winter twilight.`
+        ]
+      }
+    ]
+  },
+  {
+    id: 5,
+    title: 'Piranesi',
+    author: 'Susanna Clarke',
+    genre: 'Fantasy',
+    call: '823.92 CLA',
+    status: 'out',
+    coverTheme: 'teal',
+    publicationYear: '2020',
+    pagesCount: 6,
+    chapters: [
+      {
+        title: 'Chapter 1: The Statues of the First Vestibule',
+        quote: '"The Beauty of the House is immeasurable; its Kindness infinite."',
+        pages: [
+          `When the Moon rose in the Third Northern Courtyard, I climbed to the Upper Halls to record the tides. The House is divided into thousands of halls, vestibules, and staircases, adorned with marble statues of minotaurs, kings, and children playing with birds.\n\nThe Lower Halls belong to the Ocean; the Upper Halls belong to the Clouds and Birds; and the Middle Halls belong to Man.`,
+          `I have named and cataloged four hundred and eighty-eight statues. In the Ninth Vestibule stands a statue of a woman carrying an owl on her forearm. When the sea spray rises through the floor grates, it catches the moonlight on her marble cheek like dew.`
+        ]
+      },
+      {
+        title: 'Chapter 2: The Other and the Journal',
+        quote: '"There are only fifteen people in all of Creation."',
+        pages: [
+          `The Other comes to the House on Tuesdays and Fridays. He is a tall, well-dressed man who carries a shining rectangular device that glows in the dark. He is searching for a Great and Secret Knowledge that he believes will grant mastery over the universe.\n\n"Piranesi," he said to me as the tide swirled around our boots, "we must find the source of the power."`,
+          `I told him that the House does not wish to be mastered; it wishes to be loved. I offered him a dried fish and a cup of fresh rainwater caught in the statue's urn.`
+        ]
+      },
+      {
+        title: 'Chapter 3: The World Beyond the Halls',
+        quote: '"We are the children of the House."',
+        pages: [
+          `The tides rose high, washing through the Western corridors with a sound like the breathing of a vast sleeping creature. In my notebook, I wrote: "I am safe. The House has given me everything I require."\n\nI looked up at the stars glittering through the broken skylight of the Tenth Hall. Even if there is another world of asphalt and crowds, this beauty remains eternal.`,
+          `I tied my blanket tight, laid my head against the marble base of the dolphin statue, and listened to the singing of the waves until morning came.`
+        ]
+      }
+    ]
+  },
+  {
+    id: 6,
+    title: 'How to Do Nothing',
+    author: 'Jenny Odell',
+    genre: 'Essays',
+    call: '303.483 ODE',
+    status: 'available',
+    coverTheme: 'slate',
+    publicationYear: '2019',
+    pagesCount: 6,
+    chapters: [
+      {
+        title: 'Chapter 1: The Case for Standing Apart',
+        quote: '"Our very idea of productivity is premised on the idea of producing something new, whereas we do not tend to see maintenance, care, and listening as productive."',
+        pages: [
+          `Nothing is harder to do than nothing. In a world where our value is determined by productivity, many of us find our every last minute captured, optimized, or financialized as a resource by the technologies we use.\n\nTo stand apart is not to retreat from reality; it is to reclaim the sensory richness of the world that surrounds us right now.`,
+          `I write this while sitting in the Morcom Amphitheatre of Roses in Oakland, listening to the trill of a ruby-crowned kinglet hiding in the ivy. The bird has no metrics; its song exists purely in the present.`
+        ]
+      },
+      {
+        title: 'Chapter 2: The Ecology of Attention',
+        quote: '"Simple awareness is the seed of responsibility."',
+        pages: [
+          `Attention may be the last resource we have left to withdraw. When we redirect our attention toward local ecosystems, bioregions, and neighbors, we begin to participate in a living democracy of care.\n\nThe oak trees on the ridge have stood for two centuries, holding the hillside together with patient root systems that demand nothing from the attention economy.`,
+          `By learning the names of the plants and birds around our doorsteps, we root ourselves in a geography that cannot be sold or algorithmicized.`
+        ]
+      },
+      {
+        title: 'Chapter 3: Reclaiming the Public Commons',
+        quote: '"To do nothing is to open a space for everything."',
+        pages: [
+          `Public parks and public libraries are modern sanctuaries—spaces where one is not expected to buy anything to justify one's presence. They are spaces of quiet solidarity.\n\nWhen we sit together in the reading room or under the park canopy, we remember that human beings are meant for contemplation, friendship, and joy.`,
+          `Step outside, take a deep breath, and let the afternoon unfold without an agenda.`
+        ]
+      }
+    ]
+  },
+  {
+    id: 7,
+    title: 'The Overstory',
+    author: 'Richard Powers',
+    genre: 'Literary Fiction',
+    call: '813.54 POW',
+    status: 'out',
+    coverTheme: 'moss',
+    publicationYear: '2018',
+    pagesCount: 6,
+    chapters: [
+      {
+        title: 'Chapter 1: Roots',
+        quote: '"First there was nothing. Then there were trees."',
+        pages: [
+          `An American chestnut tree stood in an Iowa field. For six generations of the Hoel family, a camera on a tripod took a photograph of the tree on the twenty-first of March every single year.\n\nWhen flipped quickly, the photographs reveal a silent, magnificent creature dancing across time—reaching toward the sun while subterranean roots weave a cathedral beneath the prairie grass.`,
+          `Trees speak in chemicals, in electrical pulses along fungal hyphae, in whispers of terpenes that signal an approaching pestilence across hundreds of acres before a single leaf is eaten.`
+        ]
+      },
+      {
+        title: 'Chapter 2: Trunk',
+        quote: '"The most wondrous products of four billion years of life need help."',
+        pages: [
+          `Patricia Westerford climbed eighty meters into the crown of a coastal redwood named Mimas. In the canopy, an entire ecosystem thrives that never touches the soil below.\n\nFerns, salamanders, and lichens grow upon ancient mats of humus accumulated in the forks of colossal branches. Up here, time moves to the heartbeat of centuries.`,
+          `"We are not apart from nature," Patricia wrote in her field log. "We are a recent twig on a four-billion-year-old branch, and the forest is calling us to listen."`
+        ]
+      },
+      {
+        title: 'Chapter 3: Crown',
+        quote: '"This is not our world with trees in it. It\'s a world of trees, where humans have just arrived."',
+        pages: [
+          `In the twilight of the Pacific Northwest, the fog rolled through the Douglas firs, condensing on millions of needles and dripping down in a soft, continuous rain.\n\nThe seeds fallen today will rise into giants when the cities of our era have turned to dust. The forest remembers how to grow.`,
+          `Look at any tree outside your window: it is actively turning sunlight into wood, air into life, and patience into eternity.`
+        ]
+      }
+    ]
+  },
+  {
+    id: 8,
+    title: 'Circe',
+    author: 'Madeline Miller',
+    genre: 'Mythology',
+    call: '813.6 MIL',
+    status: 'available',
+    coverTheme: 'copper',
+    publicationYear: '2018',
+    pagesCount: 6,
+    chapters: [
+      {
+        title: 'Chapter 1: The Halls of Helios',
+        quote: '"When I was born, the name for what I was did not exist."',
+        pages: [
+          `My father was Helios, the god of the sun, who drove the four golden horses across the vault of heaven every day. In his shining obsidian palace beneath the sea, mortals were less than dust.\n\nI was born without his blinding glow and without my mother\'s graceful beauty. My voice had the rasp of mortal throats, and for this they called me hawk: Circe.`,
+          `When I discovered the power of pharmaka—the hidden juices of wild herbs pressed under the moonlight—the gods feared me. For words and potions could transform even divine will into new forms.`
+        ]
+      },
+      {
+        title: 'Chapter 2: The Island of Aiaia',
+        quote: '"Humbling women seems to be a chief pastime of poets."',
+        pages: [
+          `They exiled me to Aiaia, an island surrounded by the wine-dark sea. There, among wild wolves, lions, and blossoming mandrake, I built my life with my own hands.\n\nI gathered fennel, nightshade, and sea-lavender. I sang as the loom clacked back and forth, weaving tapestries of wild sea-cliffs and silver olive groves.`,
+          `I learned that power does not come from thunderbolts or arrogance; it comes from patience, practice, and knowing the true names of living things.`
+        ]
+      },
+      {
+        title: 'Chapter 3: The Witch by the Sea',
+        quote: '"I will not be a footnote in the songs of men."',
+        pages: [
+          `When the black-prowed ship sailed into my harbor with Odysseus at the helm, he expected a monster or a goddess to be conquered. Instead, he found a woman who knew the tides of the human soul.\n\n"You are not like the gods," he said as we walked along the cliffs under the evening star. "No," I replied with a smile. "I am something better."`,
+          `I stood on the promontory, feeling the spray of the ocean on my skin, watching the dawn rise with light entirely my own.`
+        ]
+      }
+    ]
+  },
+  {
+    id: 9,
+    title: 'An Immense World',
+    author: 'Ed Yong',
+    genre: 'Science',
+    call: '591.5 YON',
+    status: 'available',
+    coverTheme: 'navy',
+    publicationYear: '2022',
+    pagesCount: 6,
+    chapters: [
+      {
+        title: 'Chapter 1: The Concept of the Umwelt',
+        quote: '"Every creature is enclosed in its own sensory bubble, which it mistakes for the whole universe."',
+        pages: [
+          `In 1909, the German biologist Jakob von Uexküll coined the term *Umwelt* to describe the unique sensory world that each animal inhabits.\n\nImagine a meadow on a summer afternoon: to a human, it is visual scenery of green grass and blue sky. To a honeybee, it is a glowing runway of ultraviolet patterns on flower petals. To a tick, it is temperature and the scent of butyric acid.`,
+          `None of us sees reality in its entirety. We see only the sliver of reality that our evolutionary niche has equipped us to perceive.`
+        ]
+      },
+      {
+        title: 'Chapter 2: Electric Fields and Magnetic Rivers',
+        quote: '"There is music playing all around us that our ears cannot hear."',
+        pages: [
+          `In the murky waters of the Amazon River, weakly electric knifefish communicate through oscillating electrical pulses, singing invisible symphonies in the dark.\n\nMigrating sea turtles and songbirds possess cryptochromes in their eyes that allow them to *see* the Earth\'s magnetic field lines draping over continents like glowing meridians.`,
+          `The world is far stranger, richer, and more wondrous than our human senses could ever dream.`
+        ]
+      },
+      {
+        title: 'Chapter 3: Preserving Sensory Silence',
+        quote: '"To understand other minds is to expand our own humanity."',
+        pages: [
+          `Today, our cities flood the night with light pollution and our oceans roar with propeller noise, drowning out the sensory landscapes of whales, fireflies, and songbirds.\n\nBy understanding the Umwelten of our fellow creatures, we develop the humility and wisdom necessary to share this planet in harmony.`,
+          `Step into the night, close your eyes, and listen to the hidden world awakening in the dark.`
+        ]
+      }
+    ]
+  },
+  {
+    id: 10,
+    title: 'The Sympathizer',
+    author: 'Viet Thanh Nguyen',
+    genre: 'Literary Fiction',
+    call: '813.6 NGU',
+    status: 'available',
+    coverTheme: 'crimson',
+    publicationYear: '2015',
+    pagesCount: 6,
+    chapters: [
+      {
+        title: 'Chapter 1: A Man of Two Faces',
+        quote: '"I am a spy, a sleeper, a spook, a man of two faces. Perhaps not surprisingly, I am also a man of two minds."',
+        pages: [
+          `I am not some misunderstood mutant from a comic book or a horror movie, although some have treated me as such. I am simply able to see any issue from both sides.\n\nIn April 1975, as the sirens wailed across Saigon and the sound of distant artillery shook the louvers of the villa, I sat at the General's desk typing the evacuation manifests.`,
+          `To the General, I was a loyal captain and trustworthy aide-de-camp. To the revolution in the jungle, I was Agent 214, transmitting the names of those who would board the last transport planes to Guam.`
+        ]
+      },
+      {
+        title: 'Chapter 2: Letters in Invisible Ink',
+        quote: '"History is not what happened, but what is written down by the victors."',
+        pages: [
+          `In Los Angeles, living in a modest apartment on Venice Boulevard, I wrote letters home using lemon juice between the lines of sentimental family gossip.\n\nWhen held over the heat of an electric toaster, the invisible ink appeared like brown veins across the white paper, carrying truth across oceans.`,
+          `We were ghosts in a land of neon and supermarkets, searching for the country we had carried in our pockets across the South China Sea.`
+        ]
+      },
+      {
+        title: 'Chapter 3: The Balance of Memory',
+        quote: '"To live is to remember, and to remember is to stay alive."',
+        pages: [
+          `Under the California eucalyptus trees, the community gathered for the spring festival. The scent of fish sauce, cilantro, and roasted pork rose into the cool Pacific breeze.\n\nIn that moment between two languages and two flags, I knew that understanding is greater than dogma, and compassion is the only true homeland.`,
+          `The story does not end with defeat or triumph; it continues wherever people gather to share words in the quiet of the evening.`
+        ]
+      }
+    ]
+  }
+];
+
+function generateBookContent(title, author, genre) {
+  const safeTitle = title || 'A Literary Journey';
+  const safeAuthor = author || 'Anonymous Scholar';
+  const safeGenre = genre || 'Literature';
+  
+  return {
+    publicationYear: new Date().getFullYear().toString(),
+    pagesCount: 6,
+    coverTheme: 'emerald',
+    chapters: [
+      {
+        title: `Chapter 1: The Beginning of ${safeTitle}`,
+        quote: `"Every page is a doorway into another life and a deeper understanding of our own."`,
+        pages: [
+          `Welcome to the digital edition of "${safeTitle}", a distinguished work of ${safeGenre} by ${safeAuthor}.\n\nAs you turn these pages, you step into a world crafted with imagination, insight, and literary depth. The story begins on a quiet morning when the unexpected becomes the foundation for an unforgettable journey.`,
+          `The characters gather at the intersection of memory and discovery. "${safeTitle}" explores the human spirit, questions of purpose, and the threads that connect our individual lives to the wider universe.`
+        ]
+      },
+      {
+        title: `Chapter 2: The Deepening Quest`,
+        quote: `"Words have the power to illuminate the darkest corners of human experience."`,
+        pages: [
+          `Through shifting seasons and trials, the central themes of ${safeGenre} emerge in full clarity. ${safeAuthor} weaves vivid dialogues and reflective prose that invite the reader to pause and contemplate each turning point.`,
+          `The journey continues through uncharted paths where decisions carry weight and character is tested against adversity. Every chapter reveals new layers of insight.`
+        ]
+      },
+      {
+        title: `Chapter 3: Epilogue & Lasting Reflection`,
+        quote: `"A book that is truly read never really ends; it lives on in the reader."`,
+        pages: [
+          `As the final scenes draw to a close, "${safeTitle}" leaves an enduring impression of hope, resilience, and curiosity.\n\nThank you for reading this selection from The Reading Room Library collection.`,
+          `Return this title when finished or explore other titles in our catalog. Happy Reading!`
+        ]
+      }
+    ]
+  };
+}
+
+module.exports = {
+  readableBooks,
+  generateBookContent
+};

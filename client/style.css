@@ -364,10 +364,293 @@ table.lib-table tr:last-child td{border-bottom:none;}
   75%{opacity:1;}
   100%{opacity:0;}
 }
-.stamp-flash.play{animation:stampIn 0.9s ease forwards;}
+/* ========================================================
+   SMS NOTIFICATIONS, FLOATING POPUP & WHATSAPP BUTTONS
+   ======================================================== */
 
-@media (max-width:640px){
+.sms-badge{
+  background:#ef4444; color:#fff; font-size:10px; font-weight:700;
+  padding:2px 6px; border-radius:10px; margin-left:4px;
+}
+
+.sms-item-card{
+  background:#ffffff; border:1px solid var(--card-shadow); border-radius:6px;
+  padding:14px; margin-bottom:10px; box-shadow:0 2px 6px rgba(0,0,0,0.04);
+  transition:transform 0.15s ease, box-shadow 0.15s ease;
+}
+.sms-item-card:hover{
+  transform:translateY(-1px); box-shadow:0 4px 12px rgba(0,0,0,0.08);
+}
+.sms-item-header{
+  display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px;
+  margin-bottom:8px; border-bottom:1px dashed #ede8dc; padding-bottom:6px;
+}
+.sms-student-title{
+  font-family:'Fraunces', serif; font-weight:600; font-size:15px; color:var(--forest-dark);
+}
+.sms-type-badge{
+  font-family:'IBM Plex Mono', monospace; font-size:10px; font-weight:600; text-transform:uppercase;
+  padding:3px 8px; border-radius:12px; letter-spacing:0.5px;
+}
+.sms-type-badge.issue{background:#ecfdf5; color:#065f46; border:1px solid #a7f3d0;}
+.sms-type-badge.due{background:#fffbeb; color:#92400e; border:1px solid #fde68a;}
+.sms-type-badge.overdue{background:#fef2f2; color:#991b1b; border:1px solid #fecaca;}
+.sms-type-badge.receipt{background:#eff6ff; color:#1e40af; border:1px solid #bfdbfe;}
+.sms-type-badge.welcome{background:#f5f3ff; color:#5b21b6; border:1px solid #ddd6fe;}
+
+.sms-body-text{
+  font-family:'Source Serif 4', serif; font-size:13.5px; line-height:1.55; color:#2d3748;
+  background:#faf8f5; border-radius:4px; padding:10px 12px; margin-bottom:8px; border-left:3px solid var(--brass);
+}
+.sms-item-footer{
+  display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;
+  font-family:'IBM Plex Mono', monospace; font-size:11px; color:#718096;
+}
+.sms-actions-row{
+  display:flex; gap:6px; align-items:center;
+}
+.sms-btn{
+  font-family:'IBM Plex Mono', monospace; font-size:11px; padding:4px 8px; border-radius:3px;
+  border:1px solid var(--card-shadow); background:var(--card); color:var(--ink); cursor:pointer;
+  text-decoration:none; display:inline-flex; align-items:center; gap:4px; transition:all 0.15s;
+}
+.sms-btn:hover{background:var(--sage); border-color:var(--brass);}
+.sms-btn.whatsapp{background:#25D366; color:#ffffff; border-color:#25D366;}
+.sms-btn.whatsapp:hover{background:#1ebe57;}
+
+/* FLOATING SMARTPHONE SMS POPUP BANNER */
+.sms-floating-banner{
+  position:fixed; top:24px; right:24px; z-index:300; width:360px; max-width:calc(100vw - 32px);
+  background:rgba(255,255,255,0.96); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
+  border:1px solid rgba(184,147,90,0.4); border-top:4px solid var(--brass); border-radius:8px;
+  box-shadow:0 15px 35px rgba(0,0,0,0.25), 0 5px 15px rgba(0,0,0,0.1);
+  padding:14px 16px; animation:smsSlideIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+@keyframes smsSlideIn{
+  0%{transform:translateX(120%) scale(0.9); opacity:0;}
+  100%{transform:translateX(0) scale(1); opacity:1;}
+}
+.sms-banner-header{
+  display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;
+}
+.sms-app-badge{
+  display:flex; align-items:center; gap:6px; font-family:'IBM Plex Mono', monospace;
+  font-size:10px; font-weight:700; letter-spacing:1px; color:#7a7a6e; text-transform:uppercase;
+}
+.sms-close-btn{
+  background:transparent; border:none; color:#999; cursor:pointer; font-size:13px; padding:2px;
+}
+.sms-close-btn:hover{color:#333;}
+.sms-title{
+  font-family:'Fraunces', serif; font-weight:600; font-size:14px; color:var(--forest-dark); margin-bottom:4px;
+}
+.sms-msg{
+  font-family:'Source Serif 4', serif; font-size:13px; line-height:1.45; color:#2c3e50; margin-bottom:10px;
+}
+.sms-meta{
+  display:flex; justify-content:space-between; align-items:center; font-family:'IBM Plex Mono', monospace; font-size:10.5px;
+}
+.sms-time{color:#888;}
+.sms-actions{display:flex; gap:6px;}
+.sms-action-link{
+  font-family:'IBM Plex Mono', monospace; font-size:11px; padding:4px 8px; border-radius:3px;
+  border:1px solid var(--card-shadow); background:var(--card); color:var(--ink); cursor:pointer;
+  text-decoration:none;
+}
+.sms-action-link.whatsapp{background:#25D366; color:#fff; border-color:#25D366; font-weight:600;}
+
+/* ========================================================
+   REALISTIC 3D PAGE-FLIP DIGITAL BOOK READER
+   ======================================================== */
+
+.reader-modal{
+  width:96vw !important; max-width:1100px !important; height:90vh !important;
+  max-height:850px !important; padding:0 !important; display:flex; flex-direction:column;
+  background:#111b15 !important; border:2px solid var(--brass) !important;
+  border-radius:10px !important; overflow:hidden !important; box-shadow:0 30px 90px rgba(0,0,0,0.85) !important;
+}
+
+.reader-topbar{
+  background:#152b21; border-bottom:2px solid var(--brass); padding:10px 18px;
+  display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; z-index:10;
+}
+.reader-title-area{
+  display:flex; align-items:baseline; gap:8px;
+}
+.reader-book-title{
+  font-family:'Fraunces', serif; font-size:17px; font-weight:600; color:var(--paper);
+}
+.reader-book-author{
+  font-family:'Source Serif 4', serif; font-style:italic; font-size:13px; color:rgba(251,248,241,0.7);
+}
+.reader-toolbar{
+  display:flex; align-items:center; gap:8px; flex-wrap:wrap;
+}
+.reader-btn{
+  font-family:'IBM Plex Mono', monospace; font-size:11.5px; padding:6px 10px;
+  background:rgba(251,248,241,0.12); border:1px solid rgba(251,248,241,0.3); color:var(--paper);
+  border-radius:4px; cursor:pointer; transition:all 0.15s; display:inline-flex; align-items:center; gap:4px;
+}
+.reader-btn:hover{background:rgba(251,248,241,0.25); border-color:var(--brass);}
+.reader-btn.danger{background:#dc2626; border-color:#ef4444;}
+.reader-btn.danger:hover{background:#b91c1c;}
+.reader-btn.active{background:var(--brass); color:var(--forest-dark); font-weight:700;}
+
+.reader-select{
+  font-family:'IBM Plex Mono', monospace; font-size:11.5px; padding:6px 8px;
+  background:#1f3a2e; border:1px solid rgba(251,248,241,0.3); color:var(--paper);
+  border-radius:4px; outline:none; cursor:pointer;
+}
+
+.reader-font-group{
+  display:flex; border:1px solid rgba(251,248,241,0.3); border-radius:4px; overflow:hidden;
+}
+.reader-icon-btn{
+  font-family:'IBM Plex Mono', monospace; font-size:11.5px; font-weight:700; padding:6px 9px;
+  background:rgba(251,248,241,0.12); border:none; color:var(--paper); cursor:pointer;
+}
+.reader-icon-btn:hover{background:rgba(251,248,241,0.25);}
+.reader-icon-btn:first-child{border-right:1px solid rgba(251,248,241,0.3);}
+
+/* 3D Book Experience Viewport */
+.reader-viewport{
+  flex:1; display:flex; align-items:center; justify-content:center; padding:20px;
+  perspective:1500px; background:radial-gradient(circle at center, #1b2f25 0%, #0d1611 100%);
+  overflow:hidden;
+}
+
+/* 3D Open Book Spread */
+.book-3d-spread{
+  width:100%; max-width:980px; height:100%; max-height:560px; display:flex; position:relative;
+  border-radius:8px; box-shadow:0 25px 60px rgba(0,0,0,0.65), 0 0 0 8px #2b1f15, 0 0 0 10px #1a120b;
+  transform-style:preserve-3d; transition:all 0.3s ease;
+}
+
+/* Themes for Book Spread */
+.book-3d-spread.theme-parchment{
+  background:#FBF8F1; color:#1C2541;
+}
+.book-3d-spread.theme-dark{
+  background:#191E24; color:#E5D8B8;
+  box-shadow:0 25px 60px rgba(0,0,0,0.85), 0 0 0 8px #111417, 0 0 0 10px #090b0d;
+}
+.book-3d-spread.theme-clean{
+  background:#FFFFFF; color:#222222;
+  box-shadow:0 25px 60px rgba(0,0,0,0.5), 0 0 0 8px #3b4252, 0 0 0 10px #2e3440;
+}
+.book-3d-spread.theme-sepia{
+  background:#F5ECD7; color:#3E2723;
+  box-shadow:0 25px 60px rgba(0,0,0,0.65), 0 0 0 8px #4e342e, 0 0 0 10px #3e2723;
+}
+
+/* Left & Right Pages */
+.book-page{
+  flex:1; height:100%; position:relative; padding:32px 36px 28px; overflow-y:auto;
+  display:flex; flex-direction:column; justify-content:space-between;
+  box-shadow:inset 0 0 30px rgba(0,0,0,0.05);
+}
+.book-page-left{
+  border-top-left-radius:6px; border-bottom-left-radius:6px;
+  background:linear-gradient(to right, rgba(0,0,0,0.04) 0%, transparent 15%, transparent 85%, rgba(0,0,0,0.08) 100%);
+  border-right:1px solid rgba(0,0,0,0.1);
+}
+.book-page-right{
+  border-top-right-radius:6px; border-bottom-right-radius:6px;
+  background:linear-gradient(to left, rgba(0,0,0,0.04) 0%, transparent 15%, transparent 85%, rgba(0,0,0,0.08) 100%);
+}
+
+/* Spine Crease & Shadow */
+.book-spine-gutter{
+  width:18px; background:linear-gradient(to right, rgba(0,0,0,0.22) 0%, rgba(0,0,0,0.02) 50%, rgba(0,0,0,0.22) 100%);
+  position:relative; z-index:5; box-shadow:0 0 10px rgba(0,0,0,0.3);
+}
+
+.page-inner{
+  flex:1; display:flex; flex-direction:column; justify-content:space-between; height:100%;
+}
+.page-header{
+  display:flex; justify-content:space-between; align-items:center;
+  border-bottom:1px solid rgba(184,147,90,0.35); padding-bottom:8px; margin-bottom:16px;
+  font-family:'IBM Plex Mono', monospace; font-size:10.5px; text-transform:uppercase; letter-spacing:1px;
+  opacity:0.75;
+}
+.page-content{
+  flex:1; font-family:'Source Serif 4', serif; line-height:1.75; font-size:15px;
+  overflow-y:auto; padding-right:6px;
+}
+.page-content h3{
+  font-family:'Fraunces', serif; font-size:19px; font-weight:600; margin-bottom:12px;
+  color:var(--forest-dark); border-left:3px solid var(--brass); padding-left:10px;
+}
+.book-3d-spread.theme-dark .page-content h3{color:#F5E6C8;}
+
+.page-quote{
+  font-style:italic; padding:10px 14px; margin-bottom:14px; border-radius:4px;
+  background:rgba(184,147,90,0.12); border-left:3px solid var(--brass); font-size:13.5px; line-height:1.6;
+}
+.page-paragraph{
+  margin-bottom:14px; text-indent:24px; text-align:justify;
+}
+.page-paragraph.dropcap::first-letter{
+  font-family:'Fraunces', serif; font-size:42px; line-height:1; float:left;
+  margin-right:8px; margin-top:2px; font-weight:700; color:var(--brass-dark);
+}
+
+.page-footer{
+  border-top:1px solid rgba(184,147,90,0.25); padding-top:8px; margin-top:14px;
+  text-align:center; font-family:'IBM Plex Mono', monospace; font-size:11px; opacity:0.7;
+}
+
+/* Page curl corner */
+.page-curl-corner{
+  position:absolute; bottom:0; right:0; width:32px; height:32px;
+  background:linear-gradient(135deg, transparent 50%, rgba(184,147,90,0.5) 50%, rgba(184,147,90,0.2) 100%);
+  cursor:pointer; transition:all 0.2s ease; border-bottom-right-radius:6px;
+}
+.page-curl-corner:hover{
+  width:44px; height:44px; background:linear-gradient(135deg, transparent 50%, var(--brass) 50%, #8F6F3E 100%);
+}
+
+/* Bottom Controls */
+.reader-bottombar{
+  background:#152b21; border-top:2px solid var(--brass); padding:10px 20px;
+  display:flex; justify-content:space-between; align-items:center; gap:12px; z-index:10;
+}
+.reader-nav-btn{
+  font-family:'IBM Plex Mono', monospace; font-size:12px; font-weight:600; padding:8px 16px;
+  background:var(--brass); color:var(--forest-dark); border:none; border-radius:4px;
+  cursor:pointer; transition:all 0.15s;
+}
+.reader-nav-btn:hover{background:#d4af37;}
+.reader-nav-btn:disabled{background:#555; color:#888; cursor:not-allowed;}
+
+.reader-progress-area{
+  display:flex; align-items:center; gap:14px; flex-wrap:wrap; justify-content:center;
+}
+.reader-chapter-sel{
+  font-family:'IBM Plex Mono', monospace; font-size:11.5px; padding:6px 10px;
+  background:#1f3a2e; border:1px solid rgba(251,248,241,0.3); color:var(--paper); border-radius:4px;
+}
+.reader-page-indicator{
+  font-family:'IBM Plex Mono', monospace; font-size:11.5px; color:var(--paper); font-weight:600;
+}
+
+/* Card Read Book Button in Catalog & Dashboard */
+.card-read-btn{
+  font-family:'IBM Plex Mono', monospace; font-size:11px; font-weight:600;
+  padding:6px 11px; background:var(--forest-dark); color:var(--paper);
+  border:1px solid var(--brass); border-radius:3px; cursor:pointer;
+  transition:all 0.15s; display:inline-flex; align-items:center; gap:4px; margin-top:8px;
+}
+.card-read-btn:hover{background:var(--brass); color:var(--forest-dark);}
+
+@media (max-width:768px){
+  .book-3d-spread{flex-direction:column; max-height:100%;}
+  .book-page-right{display:none;}
+  .book-spine-gutter{display:none;}
+  .reader-modal{width:100vw !important; height:100vh !important; max-height:100vh !important; border-radius:0 !important;}
   .topbar-inner{flex-direction:column; align-items:flex-start;}
   .nav-tabs{width:100%;}
   .fine-alert-banner{flex-direction:column; align-items:flex-start;}
 }
+

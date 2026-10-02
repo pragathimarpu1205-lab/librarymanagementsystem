@@ -6,6 +6,7 @@ let activityLog = [];
 let loanRecords = [];
 let paymentRecords = [];
 let emailLogs = [];
+let smsLogs = [];
 let fineRate = 10;
 let paymentConfig = {
   upiId: 'librarypay@upi',
@@ -22,6 +23,14 @@ let activePaymentLoan = null;
 let payQrScanner = null;
 let isPayCamRunning = false;
 
+// Digital Flipbook Reader State
+let activeReadingBook = null;
+let currentReadingPage = 1;
+let totalReadingPages = 6;
+let readerFontSize = 15;
+let isTtsSpeaking = false;
+let audioCtx = null;
+
 // DOM Elements
 const views = document.querySelectorAll('.view');
 const navTabs = document.getElementById('navTabs');
@@ -35,8 +44,68 @@ const globalAlert = document.getElementById('globalAlert');
 const stampFlash = document.getElementById('stampFlash');
 
 // Topbar Action Buttons
+const openSmsHubTopBtn = document.getElementById('openSmsHubTopBtn');
+const smsUnreadBadge = document.getElementById('smsUnreadBadge');
 const openMailHubTopBtn = document.getElementById('openMailHubTopBtn');
 const openPaymentSettingsBtn = document.getElementById('openPaymentSettingsBtn');
+
+// SMS & Alerts Hub Elements
+const smsHubModal = document.getElementById('smsHubModal');
+const tabSmsLogsBtn = document.getElementById('tabSmsLogsBtn');
+const tabSmsComposeBtn = document.getElementById('tabSmsComposeBtn');
+const tabSmsLogsContent = document.getElementById('tabSmsLogsContent');
+const tabSmsComposeContent = document.getElementById('tabSmsComposeContent');
+const smsSearchInput = document.getElementById('smsSearchInput');
+const smsTypeFilter = document.getElementById('smsTypeFilter');
+const refreshSmsHubBtn = document.getElementById('refreshSmsHubBtn');
+const smsHubListContainer = document.getElementById('smsHubListContainer');
+const smsComposerStudentSel = document.getElementById('smsComposerStudentSel');
+const smsComposerPhone = document.getElementById('smsComposerPhone');
+const smsComposerText = document.getElementById('smsComposerText');
+const btnSendCustomSms = document.getElementById('btnSendCustomSms');
+const btnWhatsAppShareCustom = document.getElementById('btnWhatsAppShareCustom');
+const smsComposerStatus = document.getElementById('smsComposerStatus');
+const closeSmsHubBtn = document.getElementById('closeSmsHubBtn');
+
+// Floating Smartphone SMS Banner Elements
+const smsPopupNotification = document.getElementById('smsPopupNotification');
+const smsPopupTitle = document.getElementById('smsPopupTitle');
+const smsPopupMessage = document.getElementById('smsPopupMessage');
+const smsPopupTime = document.getElementById('smsPopupTime');
+const smsPopupWhatsApp = document.getElementById('smsPopupWhatsApp');
+const smsPopupViewHub = document.getElementById('smsPopupViewHub');
+const smsPopupCloseBtn = document.getElementById('smsPopupCloseBtn');
+
+// Digital 3D Book Reader Elements
+const bookReaderModal = document.getElementById('bookReaderModal');
+const readerTitle = document.getElementById('readerTitle');
+const readerAuthor = document.getElementById('readerAuthor');
+const readerBookmarkBtn = document.getElementById('readerBookmarkBtn');
+const bookmarkLabel = document.getElementById('bookmarkLabel');
+const readerTtsBtn = document.getElementById('readerTtsBtn');
+const ttsLabel = document.getElementById('ttsLabel');
+const readerThemeSel = document.getElementById('readerThemeSel');
+const readerFontDown = document.getElementById('readerFontDown');
+const readerFontUp = document.getElementById('readerFontUp');
+const readerFullscreenBtn = document.getElementById('readerFullscreenBtn');
+const readerCloseBtn = document.getElementById('readerCloseBtn');
+const readerViewport = document.getElementById('readerViewport');
+const bookSpread = document.getElementById('bookSpread');
+const pageLeft = document.getElementById('pageLeft');
+const pageRight = document.getElementById('pageRight');
+const leftHeaderBook = document.getElementById('leftHeaderBook');
+const leftHeaderChapter = document.getElementById('leftHeaderChapter');
+const leftPageContent = document.getElementById('leftPageContent');
+const leftPageNum = document.getElementById('leftPageNum');
+const rightHeaderBook = document.getElementById('rightHeaderBook');
+const rightHeaderChapter = document.getElementById('rightHeaderChapter');
+const rightPageContent = document.getElementById('rightPageContent');
+const rightPageNum = document.getElementById('rightPageNum');
+const pageCurlCorner = document.getElementById('pageCurlCorner');
+const readerPrevBtn = document.getElementById('readerPrevBtn');
+const readerNextBtn = document.getElementById('readerNextBtn');
+const readerChapterJump = document.getElementById('readerChapterJump');
+const readerPageIndicator = document.getElementById('readerPageIndicator');
 
 // Admin Elements
 const studentSearchInput = document.getElementById('studentSearchInput');
@@ -82,9 +151,9 @@ function getMockDB() {
     fineRate: 10,
     admin: { username: 'admin', password: 'admin123', name: 'Ms. Okafor' },
     students: [
-      { id: 1, name: 'Aisha Khan', username: 'student', password: 'student123', email: 'aisha@gmail.com' },
-      { id: 2, name: 'Diego Ramirez', username: 'diego', password: 'student123', email: 'diego@gmail.com' },
-      { id: 3, name: 'Wei Chen', username: 'wei', password: 'student123', email: 'wei@gmail.com' }
+      { id: 1, name: 'Aisha Khan', username: 'student', password: 'student123', email: 'aisha@gmail.com', phone: '+91 98765 43210' },
+      { id: 2, name: 'Diego Ramirez', username: 'diego', password: 'student123', email: 'diego@gmail.com', phone: '+91 98765 43211' },
+      { id: 3, name: 'Wei Chen', username: 'wei', password: 'student123', email: 'wei@gmail.com', phone: '+91 98765 43212' }
     ],
     books: [
       { id: 1, title: 'Beloved', author: 'Toni Morrison', genre: 'Literary Fiction', call: '813.54 MOR', status: 'available' },
@@ -99,16 +168,44 @@ function getMockDB() {
       { id: 10, title: 'The Sympathizer', author: 'Viet Thanh Nguyen', genre: 'Literary Fiction', call: '813.6 NGU', status: 'available' }
     ],
     loanRecords: [
-      { id: 1, bookId: 4, studentId: 2, title: 'The Brothers Karamazov', issued: daysFromNow(-17), due: daysFromNow(-3), returned: null, fineAmount: 30, paymentStatus: 'pending', fineRateAtLoan: 10, reminders: { twoDays: true, overdue: true } },
-      { id: 2, bookId: 5, studentId: 1, title: 'Piranesi', issued: daysFromNow(-12), due: daysFromNow(2), returned: null, fineAmount: null, paymentStatus: 'pending', fineRateAtLoan: 10, reminders: { twoDays: false, overdue: false } },
-      { id: 3, bookId: 7, studentId: 3, title: 'The Overstory', issued: daysFromNow(-15), due: daysFromNow(-1), returned: null, fineAmount: 10, paymentStatus: 'pending', fineRateAtLoan: 10, reminders: { twoDays: true, overdue: true } }
+      { id: 1, bookId: 4, studentId: 2, title: 'The Brothers Karamazov', issued: daysFromNow(-17), due: daysFromNow(-3), returned: null, fineAmount: 30, paymentStatus: 'pending', fineRateAtLoan: 10, issuedDate: fmtDate(daysFromNow(-17)), issuedTime: '10:30 AM', reminders: { twoDays: true, overdue: true } },
+      { id: 2, bookId: 5, studentId: 1, title: 'Piranesi', issued: daysFromNow(-12), due: daysFromNow(2), returned: null, fineAmount: null, paymentStatus: 'pending', fineRateAtLoan: 10, issuedDate: fmtDate(daysFromNow(-12)), issuedTime: '02:15 PM', reminders: { twoDays: false, overdue: false } },
+      { id: 3, bookId: 7, studentId: 3, title: 'The Overstory', issued: daysFromNow(-15), due: daysFromNow(-1), returned: null, fineAmount: 10, paymentStatus: 'pending', fineRateAtLoan: 10, issuedDate: fmtDate(daysFromNow(-15)), issuedTime: '11:45 AM', reminders: { twoDays: true, overdue: true } }
     ],
     activityLog: [
-      { time: 'Now', text: 'System ready. ₹10/day fine system, 2-day alerts & QR/Barcode scanner active.' }
+      { time: 'Now', text: 'System ready. ₹10/day fine system, 2-day alerts, SMS text alerts & 3D Book Flip Reader active.' }
     ],
     paymentRecords: [],
     emailLogs: [
       { id: 1, timestamp: new Date().toISOString(), type: '2-Day Return Alert', recipient: 'aisha@gmail.com', subject: '⏰ 2-Day Return Reminder: Piranesi', status: 'delivered', previewUrl: 'https://ethereal.email/message/sample-2day' }
+    ],
+    smsLogs: [
+      {
+        id: 1,
+        type: 'issue_alert',
+        to: '+91 98765 43211',
+        studentName: 'Diego Ramirez',
+        bookTitle: 'The Brothers Karamazov',
+        issuedDate: fmtDate(daysFromNow(-17)),
+        issuedTime: '10:30 AM',
+        dueDate: fmtDate(daysFromNow(-3)),
+        message: '📚 The Reading Room Library Alert: Hello Diego Ramirez, you have borrowed "The Brothers Karamazov" on ' + fmtDate(daysFromNow(-17)) + ' at 10:30 AM. Due Date: ' + fmtDate(daysFromNow(-3)) + '. Late fine: ₹10/day.',
+        status: 'delivered',
+        timestamp: daysFromNow(-17)
+      },
+      {
+        id: 2,
+        type: 'issue_alert',
+        to: '+91 98765 43210',
+        studentName: 'Aisha Khan',
+        bookTitle: 'Piranesi',
+        issuedDate: fmtDate(daysFromNow(-12)),
+        issuedTime: '02:15 PM',
+        dueDate: fmtDate(daysFromNow(2)),
+        message: '📚 The Reading Room Library Alert: Hello Aisha Khan, you have borrowed "Piranesi" on ' + fmtDate(daysFromNow(-12)) + ' at 02:15 PM. Due Date: ' + fmtDate(daysFromNow(2)) + '. Late fine: ₹10/day.',
+        status: 'delivered',
+        timestamp: daysFromNow(-12)
+      }
     ],
     paymentConfig: {
       upiId: 'librarypay@upi',
@@ -125,7 +222,8 @@ function getMockDB() {
     nextStudentId: 4,
     nextBookId: 11,
     nextLoanId: 4,
-    nextPaymentId: 1
+    nextPaymentId: 1,
+    nextSmsId: 3
   };
   saveMockDB(initial);
   return initial;
@@ -181,11 +279,26 @@ function handleMockApi(path, options = {}) {
   if (cleanPath === 'students') {
     if (method === 'GET') return db.students;
     if (method === 'POST') {
-      const newStudent = { id: db.nextStudentId++, name: body.name, username: body.username, password: body.password || 'student123', email: body.email };
+      const phone = body.phone || `+91 98765 ${Math.floor(10000 + Math.random() * 90000)}`;
+      const newStudent = { id: db.nextStudentId++, name: body.name, username: body.username, password: body.password || 'student123', email: body.email, phone };
       db.students.push(newStudent);
-      db.activityLog.unshift({ time: 'Just now', text: `Registered student ${newStudent.name} (${newStudent.username})` });
+      db.activityLog.unshift({ time: 'Just now', text: `Registered student ${newStudent.name} (${newStudent.username}, ${phone})` });
+      
+      const welcomeSms = {
+        id: db.nextSmsId++,
+        type: 'welcome',
+        to: phone,
+        studentName: newStudent.name,
+        bookTitle: 'Library Membership',
+        message: `🎉 Welcome to The Reading Room Library, ${newStudent.name}! Your membership is active. You can borrow books and read 3D digital flipbooks anytime.`,
+        status: 'delivered',
+        timestamp: new Date().toISOString()
+      };
+      db.smsLogs = db.smsLogs || [];
+      db.smsLogs.unshift(welcomeSms);
+
       saveMockDB(db);
-      return { success: true, student: newStudent };
+      return { success: true, student: newStudent, sms: welcomeSms };
     }
   }
 
@@ -202,26 +315,40 @@ function handleMockApi(path, options = {}) {
     }
   }
 
-  // 7. Loans
-  if (cleanPath === 'loans') {
-    if (method === 'GET') return db.loanRecords;
+  // 7. Loans / Issue (With Exact Date & Time and SMS)
+  if (cleanPath === 'loans' || cleanPath === 'issue') {
+    if (cleanPath === 'loans' && method === 'GET') return db.loanRecords;
     if (method === 'POST') {
       const { bookId, studentId, days } = body;
       const book = db.books.find(b => b.id === Number(bookId));
       const student = db.students.find(s => s.id === Number(studentId));
+      const loanDays = Number(days) || 14;
+      const now = new Date();
+      const formattedDate = now.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+      const formattedTime = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+      const dueText = fmtDate(daysFromNow(loanDays));
+
       if (book) {
         book.status = 'out';
         book.studentId = Number(studentId);
-        book.issued = new Date().toISOString();
-        book.due = daysFromNow(Number(days) || 14);
+        book.issued = now.toISOString();
+        book.due = daysFromNow(loanDays);
       }
+
       const newLoan = {
         id: db.nextLoanId++,
         bookId: Number(bookId),
         studentId: Number(studentId),
         title: book ? book.title : 'Book #' + bookId,
-        issued: new Date().toISOString(),
-        due: daysFromNow(Number(days) || 14),
+        author: book ? book.author : 'Author',
+        studentName: student ? student.name : 'Student',
+        studentPhone: student?.phone || '+91 98765 43210',
+        issued: now.toISOString(),
+        due: daysFromNow(loanDays),
+        issuedDate: formattedDate,
+        issuedTime: formattedTime,
+        dueText,
+        loanDays,
         returned: null,
         fineAmount: null,
         paymentStatus: 'pending',
@@ -229,33 +356,101 @@ function handleMockApi(path, options = {}) {
         reminders: { twoDays: false, overdue: false }
       };
       db.loanRecords.unshift(newLoan);
-      db.activityLog.unshift({ time: 'Just now', text: `Issued "${newLoan.title}" to ${student ? student.name : 'Student #' + studentId}` });
+
+      // Create SMS Record with exact Date & Time
+      const smsMessage = `📚 The Reading Room Library Alert: Hello ${student?.name || 'Student'}, you have checked out "${book?.title || 'Book'}" on ${formattedDate} at ${formattedTime}. Due Date: ${dueText} (${loanDays} days). Late fine: ₹${db.fineRate}/day. Happy Reading!`;
+      const smsRecord = {
+        id: db.nextSmsId++,
+        type: 'issue_alert',
+        to: student?.phone || '+91 98765 43210',
+        studentName: student?.name || 'Student',
+        bookTitle: book?.title || 'Book',
+        issuedDate: formattedDate,
+        issuedTime: formattedTime,
+        dueDate: dueText,
+        message: smsMessage,
+        status: 'delivered',
+        timestamp: now.toISOString()
+      };
+      db.smsLogs = db.smsLogs || [];
+      db.smsLogs.unshift(smsRecord);
+
+      db.activityLog.unshift({ time: 'Just now', text: `Issued "${newLoan.title}" to ${student?.name || 'Student'} on ${formattedDate} at ${formattedTime} (SMS Sent)` });
       saveMockDB(db);
-      return { success: true, loan: newLoan };
+      return { success: true, loan: newLoan, sms: smsRecord };
     }
   }
 
   // 8. Return Loan
-  if (cleanPath.startsWith('loans/') && cleanPath.endsWith('/return') && method === 'POST') {
-    const bookId = Number(cleanPath.split('/')[1]);
+  if ((cleanPath.startsWith('loans/') && cleanPath.endsWith('/return')) || cleanPath === 'return') {
+    const bookId = body.bookId ? Number(body.bookId) : Number(cleanPath.split('/')[1]);
     const book = db.books.find(b => b.id === bookId);
     const loan = db.loanRecords.find(l => l.bookId === bookId && !l.returned);
+    const student = loan ? db.students.find(s => s.id === loan.studentId) : null;
+    let fineAmount = 0;
+    const now = new Date();
+    const returnDate = now.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+    const returnTime = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+
     if (book) {
       book.status = 'available';
       book.studentId = null;
     }
     if (loan) {
-      loan.returned = new Date().toISOString();
-      const diff = Math.ceil((new Date() - new Date(loan.due)) / (1000 * 60 * 60 * 24));
+      loan.returned = now.toISOString();
+      loan.returnDate = returnDate;
+      loan.returnTime = returnTime;
+      const diff = Math.ceil((now - new Date(loan.due)) / (1000 * 60 * 60 * 24));
       if (diff > 0) {
-        loan.fineAmount = diff * (loan.fineRateAtLoan || db.fineRate);
+        fineAmount = diff * (loan.fineRateAtLoan || db.fineRate);
+        loan.fineAmount = fineAmount;
+        loan.paymentStatus = 'pending';
       } else {
-        loan.paymentStatus = 'waived';
+        loan.paymentStatus = 'paid';
       }
     }
-    db.activityLog.unshift({ time: 'Just now', text: `Returned "${book ? book.title : 'Book'}"` });
+
+    if (student) {
+      const returnSms = `📚 The Reading Room Library: "${book?.title || 'Book'}" returned by ${student.name} on ${returnDate} at ${returnTime}.${fineAmount > 0 ? ` Overdue fine: ₹${fineAmount}. Please settle via UPI QR in student portal.` : ' Returned on time with zero late fine. Thank you!'}`;
+      db.smsLogs = db.smsLogs || [];
+      db.smsLogs.unshift({
+        id: db.nextSmsId++,
+        type: 'return_receipt',
+        to: student.phone || '+91 98765 43210',
+        studentName: student.name,
+        bookTitle: book?.title || 'Book',
+        message: returnSms,
+        status: 'delivered',
+        timestamp: now.toISOString()
+      });
+    }
+
+    db.activityLog.unshift({ time: 'Just now', text: `Returned "${book ? book.title : 'Book'}" on ${returnDate} at ${returnTime}${fineAmount > 0 ? ` (Fine: ₹${fineAmount})` : ''}` });
     saveMockDB(db);
-    return { success: true, loan };
+    return { success: true, loan, fineAmount, paymentStatus: fineAmount > 0 ? 'pending' : 'paid', loanId: loan?.id };
+  }
+
+  // 9. SMS Logs
+  if (cleanPath === 'api/sms-logs') {
+    return db.smsLogs || [];
+  }
+
+  // 10. Send Custom SMS
+  if (cleanPath === 'api/send-sms' && method === 'POST') {
+    const sms = {
+      id: db.nextSmsId++,
+      type: body.type || 'custom_alert',
+      to: body.to,
+      studentName: body.studentName || 'Student',
+      bookTitle: body.bookTitle || 'Notice',
+      message: body.message,
+      status: 'delivered',
+      timestamp: new Date().toISOString()
+    };
+    db.smsLogs = db.smsLogs || [];
+    db.smsLogs.unshift(sms);
+    saveMockDB(db);
+    return { success: true, message: `SMS sent to ${body.to}`, sms };
   }
 
   // 9. Payment Config
@@ -508,7 +703,7 @@ function showView(name) {
 }
 
 async function refreshAllData() {
-  const [bookData, studentData, activityData, fineData, loansData, payConfigData, paymentsData, emailLogsData] = await Promise.all([
+  const [bookData, studentData, activityData, fineData, loansData, payConfigData, paymentsData, emailLogsData, smsLogsData] = await Promise.all([
     api(API_BASE + 'books'),
     api(API_BASE + 'students'),
     api(API_BASE + 'activity'),
@@ -516,7 +711,8 @@ async function refreshAllData() {
     api(API_BASE + 'loans'),
     api(API_BASE + 'api/payment-config'),
     api(API_BASE + 'api/payments'),
-    api(API_BASE + 'api/email-logs')
+    api(API_BASE + 'api/email-logs'),
+    api(API_BASE + 'api/sms-logs')
   ]);
 
   books = Array.isArray(bookData) ? bookData : [];
@@ -527,10 +723,13 @@ async function refreshAllData() {
   if (payConfigData) paymentConfig = Object.assign(paymentConfig, payConfigData);
   paymentRecords = Array.isArray(paymentsData) ? paymentsData : [];
   emailLogs = Array.isArray(emailLogsData) ? emailLogsData : [];
+  smsLogs = Array.isArray(smsLogsData) ? smsLogsData : [];
 
   if (fineRateInput) fineRateInput.value = fineRate;
+  if (smsUnreadBadge) smsUnreadBadge.textContent = smsLogs.length;
   populateGenres();
   populateComposerStudents();
+  populateSmsComposerStudents();
 }
 
 // ----------------------------------------------------
@@ -1203,7 +1402,7 @@ async function renderStudentDashboard() {
     due2Banner.innerHTML = '';
   }
 
-  // 3. My Borrowed Books List
+  // 3. My Borrowed Books List (with 3D Digital Book Reader)
   const myBooksContainer = document.getElementById('myBooksList');
   if (currentLoans.length === 0) {
     myBooksContainer.innerHTML = '<div style="color:#7a7a6e; font-family:\'IBM Plex Mono\',monospace; font-size:13px; padding:16px 0;">You have no books currently checked out. Visit the Catalog to explore available titles.</div>';
@@ -1241,6 +1440,7 @@ async function renderStudentDashboard() {
             <div style="font-family:'IBM Plex Mono',monospace; font-size:12px; color:#555; margin-top:4px;">
               Issued: ${fmtDate(loan.issued)} • <b>Due Back: ${fmtDate(loan.due)}</b>
             </div>
+            <button class="card-read-btn" style="margin-top:8px;" onclick="openBookReader(${loan.bookId})">📖 Read Digital Book</button>
           </div>
           <div style="display:flex; align-items:center; gap:12px;">
             ${statusPill}
@@ -1251,7 +1451,10 @@ async function renderStudentDashboard() {
     }).join('');
   }
 
-  // 4. Student Borrowing & Payment History
+  // 4. Student SMS Notifications & Issue Receipts Feed
+  renderStudentSmsList();
+
+  // 5. Student Borrowing & Payment History
   const historyTbody = document.getElementById('studentHistoryBody');
   if (history.length === 0) {
     historyTbody.innerHTML = '<tr><td colspan="8" class="empty">No borrowing history yet.</td></tr>';
@@ -1268,7 +1471,10 @@ async function renderStudentDashboard() {
 
       return `
         <tr>
-          <td><b>${escapeHtml(item.title)}</b></td>
+          <td>
+            <b>${escapeHtml(item.title)}</b>
+            <div style="margin-top:2px;"><button class="card-read-btn" style="font-size:10px; padding:3px 7px;" onclick="openBookReader(${item.bookId})">📖 Read</button></div>
+          </td>
           <td>${fmtDate(item.issued)}</td>
           <td>${fmtDate(item.due)}</td>
           <td>${fmtDate(item.returned)}</td>
@@ -1415,11 +1621,12 @@ function renderCard(book) {
   const statusClass = book.status === 'available' ? 'avail' : (overdue ? 'overdue' : 'out');
   const statusLabel = book.status === 'available' ? 'On shelf' : (overdue ? `Overdue (${daysOverdue(book)}d)` : 'Checked out');
   const dueNote = book.status === 'out' ? `<div class="due-note">${overdue ? 'was due' : 'due back'} ${fmtDate(book.due)} · ${escapeHtml(studentName(book.studentId))}</div>` : '';
+  const readBtn = `<button class="card-read-btn" data-action="readbook" data-id="${book.id}">📖 Read Book</button>`;
   const actions = currentUser?.role === 'admin'
     ? `<div class="card-actions">${book.status === 'available' ? `<button class="action-btn" data-action="goissue" data-id="${book.id}">Issue</button>` : `<button class="action-btn" data-action="return" data-id="${book.id}">Return</button>`}<button class="action-btn danger" data-action="remove" data-id="${book.id}">Remove</button></div>`
     : '';
 
-  card.innerHTML = `<div class="card-inner"><div class="call-number">${escapeHtml(book.call)}</div><div class="card-title">${escapeHtml(book.title)}</div><div class="card-author">${escapeHtml(book.author)}</div><div class="card-genre">${escapeHtml(book.genre)}</div><div class="status-row"><span class="status-dot"><span class="dot ${statusClass}"></span><span class="status-text ${statusClass}">${statusLabel}</span></span></div>${dueNote}${actions}</div>`;
+  card.innerHTML = `<div class="card-inner"><div class="call-number">${escapeHtml(book.call)}</div><div class="card-title">${escapeHtml(book.title)}</div><div class="card-author">${escapeHtml(book.author)}</div><div class="card-genre">${escapeHtml(book.genre)}</div><div class="status-row"><span class="status-dot"><span class="dot ${statusClass}"></span><span class="status-text ${statusClass}">${statusLabel}</span></span></div>${dueNote}<div style="margin-top:8px;">${readBtn}</div>${actions}</div>`;
   return card;
 }
 
@@ -1428,6 +1635,9 @@ document.getElementById('grid')?.addEventListener('click', async (event) => {
   if (!btn) return;
   const action = btn.dataset.action;
   const id = Number(btn.dataset.id);
+  if (action === 'readbook') {
+    openBookReader(id);
+  }
   if (action === 'goissue') {
     showView('issue');
     document.getElementById('issueBook').value = id;
@@ -1447,7 +1657,7 @@ document.getElementById('grid')?.addEventListener('click', async (event) => {
 
 function renderIssueForm(preselectStudentId = null) {
   const studentSel = document.getElementById('issueStudent');
-  studentSel.innerHTML = students.map(s => `<option value="${s.id}">${escapeHtml(s.name)} (${escapeHtml(s.email)})</option>`).join('');
+  studentSel.innerHTML = students.map(s => `<option value="${s.id}">${escapeHtml(s.name)} (${escapeHtml(s.email)}) • ${escapeHtml(s.phone || 'No phone')}</option>`).join('');
   if (preselectStudentId) studentSel.value = preselectStudentId;
 
   const bookSel = document.getElementById('issueBook');
@@ -1478,8 +1688,29 @@ function updateIssueSummary() {
     box.classList.remove('show');
     return;
   }
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+  const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+  const dueDateStr = fmtDate(daysFromNow(days));
+  const studentPhone = student.phone || '+91 98765 43210';
+
   box.classList.add('show');
-  box.innerHTML = `${escapeHtml(student.name)} will borrow <b>${escapeHtml(book.title)}</b><br>Due back: ${fmtDate(daysFromNow(days))} (${days} days) • Overdue rate: ₹${fineRate}/day`;
+  box.innerHTML = `
+    <div style="margin-bottom:8px;">
+      <b>Borrower:</b> ${escapeHtml(student.name)} (${escapeHtml(student.email)})<br>
+      <b>Book Title:</b> "${escapeHtml(book.title)}" by ${escapeHtml(book.author)}<br>
+      <b>Checkout Timestamp:</b> <span style="color:var(--forest-dark); font-weight:bold;">${dateStr} at ${timeStr}</span><br>
+      <b>Due Date:</b> <span style="color:var(--brass-dark); font-weight:bold;">${dueDateStr}</span> (${days} days) • <b>Late Fine Rate:</b> ₹${fineRate}/day
+    </div>
+    <div style="background:#ffffff; border:1px dashed var(--brass); border-radius:4px; padding:10px; margin-top:8px; font-size:12.5px;">
+      <div style="font-weight:700; color:var(--forest-dark); margin-bottom:4px; display:flex; align-items:center; gap:6px;">
+        <span>📱 Live SMS Alert Dispatch to: <b>${escapeHtml(studentPhone)}</b></span>
+      </div>
+      <div style="font-style:italic; color:#333; line-height:1.5;">
+        "📚 The Reading Room Library Alert: Hello ${escapeHtml(student.name)}, you have checked out '${escapeHtml(book.title)}' by ${escapeHtml(book.author)} on ${dateStr} at ${timeStr}. Due Date: ${dueDateStr}. Late fine: ₹${fineRate}/day. Happy Reading!"
+      </div>
+    </div>
+  `;
 }
 
 document.getElementById('issueConfirmBtn')?.addEventListener('click', async () => {
@@ -1493,6 +1724,9 @@ document.getElementById('issueConfirmBtn')?.addEventListener('click', async () =
   });
   if (result && result.success) {
     playStamp('ISSUED');
+    if (result.sms) {
+      showSmsPopup(result.sms);
+    }
     await refreshAllData();
     showView('admin-dashboard');
   }
@@ -1736,6 +1970,7 @@ function showSignupModal() {
   document.getElementById('sUsername').value = '';
   document.getElementById('sPassword').value = '';
   document.getElementById('sEmail').value = '';
+  if (document.getElementById('sPhone')) document.getElementById('sPhone').value = '';
   showModal(addStudentModal);
 }
 window.showSignupModal = showSignupModal;
@@ -1745,6 +1980,7 @@ document.getElementById('addStudentBtn')?.addEventListener('click', () => {
   document.getElementById('sUsername').value = '';
   document.getElementById('sPassword').value = '';
   document.getElementById('sEmail').value = '';
+  if (document.getElementById('sPhone')) document.getElementById('sPhone').value = '';
   showModal(addStudentModal);
 });
 
@@ -1754,19 +1990,21 @@ document.getElementById('confirmAddStudent')?.addEventListener('click', async ()
   const username = document.getElementById('sUsername').value.trim();
   const password = document.getElementById('sPassword').value.trim();
   const email = document.getElementById('sEmail').value.trim();
+  const phone = document.getElementById('sPhone')?.value.trim() || '+91 98765 ' + Math.floor(10000 + Math.random() * 90000);
+
   if (!name || !username || !password || !email) {
-    alert('Please complete all fields.');
+    alert('Please complete all required fields.');
     return;
   }
   const res = await api(API_BASE + 'students', {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({ name, username, password, email })
+    body: JSON.stringify({ name, username, password, email, phone })
   });
   if (res && res.success) {
     hideModal(addStudentModal);
     await refreshAllData();
-    alert('Student registered successfully!');
+    alert(`Student registered successfully! Welcome SMS sent to ${phone}.`);
     if (!currentUser) {
       loginUser.value = email;
       loginPass.value = password;
@@ -1799,12 +2037,763 @@ saveFineRateBtn?.addEventListener('click', async () => {
   }
 });
 
-// Event Listeners
+// ----------------------------------------------------
+// WEB AUDIO EFFECTS (PAGE TURNS & SMS NOTIFICATIONS)
+// ----------------------------------------------------
+
+function getAudioContext() {
+  if (!audioCtx) {
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (AudioContextClass) audioCtx = new AudioContextClass();
+  }
+  if (audioCtx && audioCtx.state === 'suspended') {
+    audioCtx.resume();
+  }
+  return audioCtx;
+}
+
+function playPageFlipSound() {
+  try {
+    const ctx = getAudioContext();
+    if (!ctx) return;
+    const bufferSize = Math.floor(ctx.sampleRate * 0.14);
+    const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (bufferSize * 0.3));
+    }
+    const noise = ctx.createBufferSource();
+    noise.buffer = buffer;
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.setValueAtTime(850, ctx.currentTime);
+    filter.frequency.exponentialRampToValueAtTime(320, ctx.currentTime + 0.14);
+    filter.Q.setValueAtTime(2.5, ctx.currentTime);
+
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(0.16, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.14);
+
+    noise.connect(filter);
+    filter.connect(gain);
+    gain.connect(ctx.destination);
+    noise.start();
+  } catch (e) {}
+}
+
+function playSmsChime() {
+  try {
+    const ctx = getAudioContext();
+    if (!ctx) return;
+    const now = ctx.currentTime;
+    
+    // Tone 1 (587.33 Hz - D5)
+    const osc1 = ctx.createOscillator();
+    const gain1 = ctx.createGain();
+    osc1.type = 'sine';
+    osc1.frequency.setValueAtTime(587.33, now);
+    gain1.gain.setValueAtTime(0.14, now);
+    gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+    osc1.connect(gain1);
+    gain1.connect(ctx.destination);
+    osc1.start(now);
+    osc1.stop(now + 0.18);
+
+    // Tone 2 (880 Hz - A5)
+    const osc2 = ctx.createOscillator();
+    const gain2 = ctx.createGain();
+    osc2.type = 'sine';
+    osc2.frequency.setValueAtTime(880, now + 0.1);
+    gain2.gain.setValueAtTime(0.18, now + 0.1);
+    gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+    osc2.connect(gain2);
+    gain2.connect(ctx.destination);
+    osc2.start(now + 0.1);
+    osc2.stop(now + 0.35);
+  } catch (e) {}
+}
+
+// ----------------------------------------------------
+// SMS TEXT ALERTS & NOTIFICATIONS HUB
+// ----------------------------------------------------
+
+openSmsHubTopBtn?.addEventListener('click', () => {
+  renderSmsHubLogs();
+  showModal(smsHubModal);
+});
+
+closeSmsHubBtn?.addEventListener('click', () => hideModal(smsHubModal));
+
+tabSmsLogsBtn?.addEventListener('click', () => {
+  tabSmsLogsBtn.classList.add('active');
+  tabSmsComposeBtn.classList.remove('active');
+  tabSmsLogsContent.classList.remove('hidden');
+  tabSmsComposeContent.classList.add('hidden');
+});
+
+tabSmsComposeBtn?.addEventListener('click', () => {
+  tabSmsComposeBtn.classList.add('active');
+  tabSmsLogsBtn.classList.remove('active');
+  tabSmsComposeContent.classList.remove('hidden');
+  tabSmsLogsContent.classList.add('hidden');
+});
+
+function populateSmsComposerStudents() {
+  if (!smsComposerStudentSel) return;
+  smsComposerStudentSel.innerHTML = '<option value="">-- Choose registered student --</option>' + students.map(s => 
+    `<option value="${s.id}" data-phone="${escapeHtml(s.phone || '')}">${escapeHtml(s.name)} • ${escapeHtml(s.phone || 'No phone')} (${escapeHtml(s.email)})</option>`
+  ).join('');
+
+  smsComposerStudentSel.addEventListener('change', () => {
+    const opt = smsComposerStudentSel.selectedOptions[0];
+    if (opt && opt.dataset.phone) {
+      smsComposerPhone.value = opt.dataset.phone;
+    }
+  });
+}
+
+function renderSmsHubLogs() {
+  if (!smsHubListContainer) return;
+  const search = (smsSearchInput?.value || '').trim().toLowerCase();
+  const typeFilter = smsTypeFilter?.value || '';
+
+  let list = Array.isArray(smsLogs) ? smsLogs : [];
+  if (typeFilter) {
+    list = list.filter(s => s.type === typeFilter);
+  }
+  if (search) {
+    list = list.filter(s =>
+      (s.studentName && s.studentName.toLowerCase().includes(search)) ||
+      (s.bookTitle && s.bookTitle.toLowerCase().includes(search)) ||
+      (s.to && s.to.toLowerCase().includes(search)) ||
+      (s.message && s.message.toLowerCase().includes(search))
+    );
+  }
+
+  if (list.length === 0) {
+    smsHubListContainer.innerHTML = '<div style="color:#7a7a6e; font-family:\'IBM Plex Mono\',monospace; font-size:12.5px; padding:16px; text-align:center;">No SMS notifications found matching your filter.</div>';
+    return;
+  }
+
+  smsHubListContainer.innerHTML = list.map(sms => {
+    const rawPhone = (sms.to || '').replace(/[^0-9]/g, '');
+    const cleanPhone = rawPhone.length === 10 ? '91' + rawPhone : rawPhone;
+    const whatsappUrl = `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(sms.message || '')}`;
+
+    return `
+      <div class="sms-item-card">
+        <div class="sms-item-top">
+          <div>
+            <span class="sms-pill-badge">${escapeHtml(sms.type.replace('_', ' ').toUpperCase())}</span>
+            <span style="font-weight:600; margin-left:6px;">${escapeHtml(sms.studentName || 'Student')}</span>
+            <span style="font-family:'IBM Plex Mono',monospace; font-size:12px; color:#666; margin-left:6px;">(${escapeHtml(sms.to)})</span>
+          </div>
+          <div style="font-family:'IBM Plex Mono',monospace; font-size:11px; color:#888;">
+            ${new Date(sms.timestamp || Date.now()).toLocaleString('en-GB', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit', hour12:true })}
+          </div>
+        </div>
+        <div class="sms-item-body">
+          ${escapeHtml(sms.message)}
+        </div>
+        <div class="sms-item-footer">
+          <span style="color:#059669; font-weight:600; font-size:11px;">✓ Delivered via SMS Gateway</span>
+          <a href="${whatsappUrl}" target="_blank" class="action-btn pay-btn" style="background:#25D366; color:#fff; border-color:#25D366; font-size:11px; padding:3px 8px;">🟢 Send via WhatsApp</a>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+smsSearchInput?.addEventListener('input', renderSmsHubLogs);
+smsTypeFilter?.addEventListener('change', renderSmsHubLogs);
+refreshSmsHubBtn?.addEventListener('click', async () => {
+  const data = await api(API_BASE + 'api/sms-logs');
+  smsLogs = Array.isArray(data) ? data : [];
+  if (smsUnreadBadge) smsUnreadBadge.textContent = smsLogs.length;
+  renderSmsHubLogs();
+});
+
+// Direct Send SMS
+btnSendCustomSms?.addEventListener('click', async () => {
+  const to = smsComposerPhone.value.trim();
+  const message = smsComposerText.value.trim();
+  const studentId = Number(smsComposerStudentSel?.value);
+  const student = students.find(s => s.id === studentId);
+
+  if (!to || !message) {
+    alert('Please enter a phone number and message content.');
+    return;
+  }
+
+  btnSendCustomSms.disabled = true;
+  btnSendCustomSms.textContent = '⏳ Dispatching SMS…';
+  smsComposerStatus.innerHTML = '<span style="color:#666;">Contacting SMS gateway…</span>';
+
+  try {
+    const res = await api(API_BASE + 'api/send-sms', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        to,
+        message,
+        studentName: student ? student.name : 'Student',
+        bookTitle: 'Notice',
+        type: 'custom_alert'
+      })
+    });
+
+    if (res && res.success) {
+      smsComposerStatus.innerHTML = `<span style="color:#059669; font-weight:600;">✅ ${res.message}</span>`;
+      smsComposerText.value = '';
+      if (res.sms) {
+        showSmsPopup(res.sms);
+      }
+      await refreshAllData();
+      renderSmsHubLogs();
+    } else {
+      smsComposerStatus.innerHTML = `<span style="color:var(--overdue); font-weight:600;">❌ ${res?.message || 'Delivery error'}</span>`;
+    }
+  } catch (e) {
+    smsComposerStatus.innerHTML = `<span style="color:var(--overdue);">Error connecting to SMS service.</span>`;
+  } finally {
+    btnSendCustomSms.disabled = false;
+    btnSendCustomSms.textContent = '📤 Dispatch SMS';
+  }
+});
+
+// Direct WhatsApp share button in composer
+btnWhatsAppShareCustom?.addEventListener('click', () => {
+  const to = smsComposerPhone.value.trim();
+  const message = smsComposerText.value.trim();
+  if (!to || !message) {
+    alert('Please provide mobile phone and message text.');
+    return;
+  }
+  const rawPhone = to.replace(/[^0-9]/g, '');
+  const cleanPhone = rawPhone.length === 10 ? '91' + rawPhone : rawPhone;
+  const url = `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(message)}`;
+  window.open(url, '_blank');
+});
+
+// Floating Smartphone SMS Popup Notification
+function showSmsPopup(sms) {
+  if (!smsPopupNotification) return;
+  playSmsChime();
+
+  smsPopupTitle.textContent = sms.type === 'issue_alert'
+    ? `📚 Book Checkout Receipt — ${sms.bookTitle}`
+    : (sms.type === 'return_receipt' ? `📗 Book Returned — ${sms.bookTitle}` : '💬 Library SMS Notification');
+
+  smsPopupMessage.textContent = sms.message;
+  smsPopupTime.textContent = sms.issuedTime
+    ? `${sms.issuedDate} at ${sms.issuedTime}`
+    : new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+
+  const rawPhone = (sms.to || '').replace(/[^0-9]/g, '');
+  const cleanPhone = rawPhone.length === 10 ? '91' + rawPhone : rawPhone;
+  smsPopupWhatsApp.href = `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(sms.message || '')}`;
+
+  smsPopupNotification.classList.remove('hidden');
+  smsPopupNotification.classList.add('slide-in');
+
+  // Auto-dismiss after 9 seconds if not clicked
+  clearTimeout(window.__smsPopupTimer);
+  window.__smsPopupTimer = setTimeout(() => {
+    smsPopupNotification.classList.add('hidden');
+  }, 9000);
+}
+
+smsPopupCloseBtn?.addEventListener('click', () => {
+  smsPopupNotification.classList.add('hidden');
+});
+
+smsPopupViewHub?.addEventListener('click', () => {
+  smsPopupNotification.classList.add('hidden');
+  renderSmsHubLogs();
+  showModal(smsHubModal);
+});
+
+// Render Student Portal SMS Feed
+function renderStudentSmsList() {
+  const container = document.getElementById('studentSmsContainer');
+  if (!container || !currentUser) return;
+
+  const mySmsList = smsLogs.filter(s =>
+    (currentUser.phone && s.to && s.to.replace(/\s+/g, '') === currentUser.phone.replace(/\s+/g, '')) ||
+    (s.studentName && s.studentName.toLowerCase() === currentUser.name.toLowerCase()) ||
+    (s.studentId && s.studentId === currentUser.id)
+  );
+
+  if (mySmsList.length === 0) {
+    container.innerHTML = '<div style="color:#7a7a6e; font-family:\'IBM Plex Mono\',monospace; font-size:12.5px; padding:12px 0;">No SMS receipts sent to your phone number yet. Whenever you borrow or return books, exact timestamp receipts will appear here.</div>';
+    return;
+  }
+
+  container.innerHTML = mySmsList.map(sms => {
+    const rawPhone = (sms.to || '').replace(/[^0-9]/g, '');
+    const cleanPhone = rawPhone.length === 10 ? '91' + rawPhone : rawPhone;
+    const whatsappUrl = `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(sms.message || '')}`;
+
+    return `
+      <div class="sms-item-card" style="margin-bottom:10px;">
+        <div class="sms-item-top">
+          <div>
+            <span class="sms-pill-badge">${escapeHtml((sms.type || 'alert').replace('_', ' ').toUpperCase())}</span>
+            <b style="margin-left:6px;">${escapeHtml(sms.bookTitle || 'Library Notice')}</b>
+          </div>
+          <span style="font-family:'IBM Plex Mono',monospace; font-size:11.5px; color:#555;">
+            ${sms.issuedDate ? `${sms.issuedDate} at ${sms.issuedTime}` : new Date(sms.timestamp).toLocaleString('en-GB')}
+          </span>
+        </div>
+        <div class="sms-item-body" style="font-size:13px; margin:6px 0;">
+          ${escapeHtml(sms.message)}
+        </div>
+        <div class="sms-item-footer">
+          <span style="color:#059669; font-size:11.5px;">✓ SMS Delivered to <b>${escapeHtml(sms.to)}</b></span>
+          <a href="${whatsappUrl}" target="_blank" class="action-btn pay-btn" style="background:#25D366; color:#fff; border-color:#25D366; font-size:10.5px; padding:2px 7px;">🟢 Share to WhatsApp</a>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+document.getElementById('refreshStudentSmsBtn')?.addEventListener('click', async () => {
+  const data = await api(API_BASE + 'api/sms-logs');
+  smsLogs = Array.isArray(data) ? data : [];
+  renderStudentSmsList();
+});
+
+// ----------------------------------------------------
+// REALISTIC 3D DUAL-PAGE FLIPBOOK DIGITAL READER
+// ----------------------------------------------------
+
+// Fallback contents for digital reader (used in offline / static hosting mode)
+function getFallbackBookContent(book) {
+  const title = book ? book.title : 'Selected Book';
+  const author = book ? book.author : 'Author';
+  const genre = book ? book.genre : 'Literature';
+  return {
+    id: book?.id || 1,
+    title,
+    author,
+    genre,
+    pagesCount: 6,
+    chapters: [
+      {
+        number: 1,
+        title: "The Opening Chamber",
+        pages: [
+          {
+            pageNumber: 1,
+            chapterTitle: "Chapter I: The Opening Chamber",
+            paragraphs: [
+              `The morning light drifted quietly through the tall archways of the library, illuminating quiet dust motes suspended in the golden air. In the world of ${title}, every word inscribed upon the parchment held a silent weight, waiting patiently for a seeker of truth to turn the page.`,
+              `"A book is not merely bound leaves of paper," ${author} wrote in the opening meditation, "but a vessel that carries the heartbeat of thought across distance and across the expanse of human history."`,
+              `As you embark upon this reading journey, let the quiet reverence of the library encompass you. Here, amidst the quiet shelter of ideas, questions find solace and imagination takes flight.`
+            ],
+            quote: `“Words have the power to create worlds where none existed before.” — ${author}`
+          },
+          {
+            pageNumber: 2,
+            chapterTitle: "Chapter I: The Opening Chamber",
+            paragraphs: [
+              `Entering into the core themes of ${genre}, one discovers a labyrinth of human emotions, philosophical inquiries, and memorable portraits of perseverance. The narrative unfolds with precision and grace.`,
+              `Each chapter has been curated to provide an authentic digital reading experience, complete with tactile soundscapes, natural dual-page layouts, and intuitive bookmarking.`,
+              `Take your time to immerse yourself in the prose. Use the toolbar above to adjust font sizing, switch between Parchment, Night Owl, Sepia, and Modern themes, or listen aloud using the built-in voice narrator.`
+            ],
+            quote: `“To read is to fly: it is to soar to a point of vantage which gives a view over wide terrains of history.”`
+          }
+        ]
+      },
+      {
+        number: 2,
+        title: "Echoes of the Mind",
+        pages: [
+          {
+            pageNumber: 3,
+            chapterTitle: "Chapter II: Echoes of the Mind",
+            paragraphs: [
+              `The second movement of ${title} deepens into the complexities of its central motif. Characters confront unforeseen dilemmas, testing their principles against the turbulence of circumstance.`,
+              `The prose style of ${author} is characterized by vivid imagery and lyrical resonance. Every sentence is crafted with deliberate balance, inviting reflection upon the broader tapestry of life.`,
+              `"We do not read to escape life," as the narrator contemplates on this page, "we read so that life may multiply itself inside us ten-thousandfold."`
+            ],
+            quote: `“In the quietest hour of the night, the truth of our convictions speaks most clearly.”`
+          },
+          {
+            pageNumber: 4,
+            chapterTitle: "Chapter II: Echoes of the Mind",
+            paragraphs: [
+              `Observing the world through the lens of ${title}, familiar landscapes transform into avenues of revelation. The dialogue between the protagonists reveals subtleties of character rarely articulated in ordinary speech.`,
+              `The cadence of the narrative quickens here, guiding the reader toward the pivotal turning point where choices must be embraced and destinies fulfilled.`,
+              `Turn forward to uncover the culminating insights of this timeless literary work.`
+            ],
+            quote: `“Destiny is never a single path carved in stone, but an ocean shaped by every gentle tide.”`
+          }
+        ]
+      },
+      {
+        number: 3,
+        title: "The Scholar's Epilogue",
+        pages: [
+          {
+            pageNumber: 5,
+            chapterTitle: "Chapter III: The Scholar's Epilogue",
+            paragraphs: [
+              `As we arrive at the concluding reflections of ${title}, the disparate threads of thought weave together into an enduring tapestry of understanding.`,
+              `${author} leaves the reader with a profound sense of wonder—an invitation to carry the questions posed within these pages back into the bustling rhythm of daily life.`,
+              `"The true ending of a book does not reside on its final page," writes the author, "but in the quiet changes it awakens within the reader's spirit."`
+            ],
+            quote: `“No two readers ever read the same book, for each brings their own soul to the page.”`
+          },
+          {
+            pageNumber: 6,
+            chapterTitle: "Chapter III: The Scholar's Epilogue",
+            paragraphs: [
+              `You have reached the conclusion of this special digital edition in The Reading Room Library.`,
+              `We hope your time with "${title}" by ${author} has been illuminating and enriching. You can return to any previous page using the navigation arrows or the chapter jump menu below.`,
+              `Thank you for reading with The Reading Room Library. Remember to return all physical copies on time to support your fellow readers!`
+            ],
+            quote: `“Happy Reading from The Reading Room Library!” 🏛️`
+          }
+        ]
+      }
+    ]
+  };
+}
+
+async function openBookReader(bookId, targetPage = 1) {
+  const localBook = books.find(b => b.id === Number(bookId));
+  const fallback = getFallbackBookContent(localBook);
+
+  // Try to fetch from backend reader API
+  try {
+    const res = await api(API_BASE + `api/books/${bookId}/read`);
+    if (res && res.success && res.book) {
+      activeReadingBook = res.book;
+    } else {
+      activeReadingBook = fallback;
+    }
+  } catch (e) {
+    activeReadingBook = fallback;
+  }
+
+  // Flatten all pages from chapters for easy dual-page indexing
+  activeReadingBook.allPages = [];
+  (activeReadingBook.chapters || []).forEach(ch => {
+    (ch.pages || []).forEach(pg => {
+      activeReadingBook.allPages.push({
+        ...pg,
+        chapterNum: ch.number,
+        chapterTitle: ch.title
+      });
+    });
+  });
+
+  if (activeReadingBook.allPages.length === 0) {
+    activeReadingBook.allPages = fallback.chapters.flatMap(c => c.pages);
+  }
+
+  totalReadingPages = activeReadingBook.allPages.length;
+
+  // Check if bookmark exists
+  const savedBookmark = localStorage.getItem(`reading_room_bookmark_${activeReadingBook.id}`);
+  currentReadingPage = targetPage || (savedBookmark ? Number(savedBookmark) : 1);
+  if (currentReadingPage > totalReadingPages) currentReadingPage = 1;
+  if (currentReadingPage % 2 === 0) currentReadingPage -= 1; // Always start on odd page for left side
+
+  // Set Reader Header Info
+  readerTitle.textContent = activeReadingBook.title || 'Book Title';
+  readerAuthor.textContent = `by ${activeReadingBook.author || 'Author'}`;
+
+  // Populate Chapter Jump Dropdown
+  if (readerChapterJump) {
+    readerChapterJump.innerHTML = (activeReadingBook.chapters || []).map(ch => 
+      `<option value="${ch.pages[0]?.pageNumber || 1}">Chapter ${ch.number}: ${escapeHtml(ch.title)}</option>`
+    ).join('');
+  }
+
+  // Restore Theme
+  const savedTheme = localStorage.getItem('reading_room_reader_theme') || 'theme-parchment';
+  applyReaderTheme(savedTheme);
+  if (readerThemeSel) readerThemeSel.value = savedTheme;
+
+  // Restore Font Size
+  const savedFontSize = Number(localStorage.getItem('reading_room_reader_font')) || 15;
+  readerFontSize = savedFontSize;
+  updateReaderFontStyles();
+
+  renderReaderPages();
+  showModal(bookReaderModal);
+  playPageFlipSound();
+}
+
+window.openBookReader = openBookReader;
+
+function renderReaderPages() {
+  if (!activeReadingBook || !activeReadingBook.allPages) return;
+
+  const leftPageIndex = currentReadingPage - 1;
+  const rightPageIndex = currentReadingPage;
+
+  const leftData = activeReadingBook.allPages[leftPageIndex];
+  const rightData = activeReadingBook.allPages[rightPageIndex];
+
+  // 1. Render Left Page
+  leftHeaderBook.textContent = activeReadingBook.title || 'The Reading Room';
+  leftHeaderChapter.textContent = leftData ? `Chapter ${leftData.chapterNum || 'I'}` : '';
+  leftPageNum.textContent = currentReadingPage;
+
+  if (leftData) {
+    const firstPara = leftData.paragraphs[0] || '';
+    const dropCapHtml = firstPara
+      ? `<p class="drop-cap-para"><span class="drop-cap">${firstPara.charAt(0)}</span>${escapeHtml(firstPara.slice(1))}</p>`
+      : '';
+    const otherParas = leftData.paragraphs.slice(1).map(p => `<p>${escapeHtml(p)}</p>`).join('');
+    const quoteHtml = leftData.quote ? `<blockquote class="reader-quote">${escapeHtml(leftData.quote)}</blockquote>` : '';
+    leftPageContent.innerHTML = dropCapHtml + otherParas + quoteHtml;
+  } else {
+    leftPageContent.innerHTML = '<div class="reader-empty-page">End of Section</div>';
+  }
+
+  // 2. Render Right Page
+  rightHeaderBook.textContent = activeReadingBook.title || 'The Reading Room';
+  rightHeaderChapter.textContent = rightData ? `Chapter ${rightData.chapterNum || 'I'}` : '';
+  rightPageNum.textContent = rightPageIndex < totalReadingPages ? (currentReadingPage + 1) : '';
+
+  if (rightData) {
+    const paras = rightData.paragraphs.map(p => `<p>${escapeHtml(p)}</p>`).join('');
+    const quoteHtml = rightData.quote ? `<blockquote class="reader-quote">${escapeHtml(rightData.quote)}</blockquote>` : '';
+    rightPageContent.innerHTML = paras + quoteHtml;
+  } else {
+    rightPageContent.innerHTML = `
+      <div style="text-align:center; padding:50px 20px; color:#666;">
+        <div style="font-size:32px; margin-bottom:10px;">🏛️</div>
+        <h4 style="font-family:'Fraunces',serif; font-size:18px; color:var(--forest-dark); margin-bottom:6px;">You have reached the end of this preview edition</h4>
+        <p style="font-size:13px; line-height:1.6;">Borrow the physical volume from the circulation desk to enjoy the complete unabridged work.</p>
+      </div>
+    `;
+  }
+
+  // Update Nav Buttons
+  if (readerPrevBtn) readerPrevBtn.disabled = currentReadingPage <= 1;
+  if (readerNextBtn) readerNextBtn.disabled = currentReadingPage + 1 >= totalReadingPages;
+
+  // Update Indicator
+  const rightNumText = rightPageIndex < totalReadingPages ? `${currentReadingPage + 1}` : `${currentReadingPage}`;
+  const pct = Math.round((currentReadingPage / totalReadingPages) * 100);
+  if (readerPageIndicator) {
+    readerPageIndicator.textContent = `Pages ${currentReadingPage}-${rightNumText} of ${totalReadingPages} (${pct}%)`;
+  }
+
+  // Update Chapter Jump Dropdown
+  if (readerChapterJump && leftData) {
+    const matchingCh = activeReadingBook.chapters.find(ch => ch.number === leftData.chapterNum);
+    if (matchingCh && matchingCh.pages[0]) {
+      readerChapterJump.value = matchingCh.pages[0].pageNumber;
+    }
+  }
+
+  // Update Bookmark Label
+  updateBookmarkButton();
+}
+
+function turnReaderPage(delta) {
+  if (!activeReadingBook || !activeReadingBook.allPages) return;
+  const newPage = currentReadingPage + delta;
+  if (newPage < 1 || newPage > totalReadingPages) return;
+
+  // Stop active TTS when turning page
+  stopTtsNarration();
+
+  // Play realistic page turn audio
+  playPageFlipSound();
+
+  // Visual Flip Animation
+  if (delta > 0 && pageRight) {
+    pageRight.classList.add('page-flipping-forward');
+    setTimeout(() => pageRight.classList.remove('page-flipping-forward'), 400);
+  } else if (delta < 0 && pageLeft) {
+    pageLeft.classList.add('page-flipping-backward');
+    setTimeout(() => pageLeft.classList.remove('page-flipping-backward'), 400);
+  }
+
+  currentReadingPage = newPage;
+  renderReaderPages();
+}
+
+readerPrevBtn?.addEventListener('click', () => turnReaderPage(-2));
+readerNextBtn?.addEventListener('click', () => turnReaderPage(2));
+pageCurlCorner?.addEventListener('click', () => turnReaderPage(2));
+
+readerChapterJump?.addEventListener('change', (e) => {
+  const target = Number(e.target.value);
+  if (target) {
+    currentReadingPage = target % 2 === 0 ? target - 1 : target;
+    renderReaderPages();
+    playPageFlipSound();
+  }
+});
+
+// Bookmarking
+function toggleBookmark() {
+  if (!activeReadingBook) return;
+  const key = `reading_room_bookmark_${activeReadingBook.id}`;
+  const saved = localStorage.getItem(key);
+  if (saved && Number(saved) === currentReadingPage) {
+    localStorage.removeItem(key);
+  } else {
+    localStorage.setItem(key, String(currentReadingPage));
+  }
+  updateBookmarkButton();
+}
+
+function updateBookmarkButton() {
+  if (!activeReadingBook || !bookmarkLabel) return;
+  const key = `reading_room_bookmark_${activeReadingBook.id}`;
+  const saved = localStorage.getItem(key);
+  const isBookmarked = saved && Number(saved) === currentReadingPage;
+
+  if (isBookmarked) {
+    bookmarkLabel.textContent = 'Bookmarked (Pg ' + saved + ')';
+    readerBookmarkBtn.classList.add('active');
+  } else {
+    bookmarkLabel.textContent = 'Bookmark';
+    readerBookmarkBtn.classList.remove('active');
+  }
+}
+
+readerBookmarkBtn?.addEventListener('click', toggleBookmark);
+
+// Text-to-Speech Read Aloud Narrator
+function toggleTtsNarration() {
+  if (isTtsSpeaking) {
+    stopTtsNarration();
+  } else {
+    startTtsNarration();
+  }
+}
+
+function startTtsNarration() {
+  if (!('speechSynthesis' in window)) {
+    alert('Voice narration is not supported in this browser.');
+    return;
+  }
+  window.speechSynthesis.cancel();
+
+  const leftData = activeReadingBook?.allPages[currentReadingPage - 1];
+  const rightData = activeReadingBook?.allPages[currentReadingPage];
+
+  let textToRead = '';
+  if (leftData) textToRead += leftData.paragraphs.join(' ') + ' ';
+  if (rightData) textToRead += rightData.paragraphs.join(' ');
+
+  if (!textToRead.trim()) return;
+
+  const utterance = new SpeechSynthesisUtterance(textToRead);
+  utterance.rate = 0.95;
+  utterance.pitch = 1.0;
+  
+  utterance.onstart = () => {
+    isTtsSpeaking = true;
+    if (ttsLabel) ttsLabel.textContent = '⏹️ Stop';
+    readerTtsBtn.classList.add('active');
+  };
+
+  utterance.onend = () => {
+    isTtsSpeaking = false;
+    if (ttsLabel) ttsLabel.textContent = 'Listen';
+    readerTtsBtn.classList.remove('active');
+  };
+
+  utterance.onerror = () => {
+    isTtsSpeaking = false;
+    if (ttsLabel) ttsLabel.textContent = 'Listen';
+    readerTtsBtn.classList.remove('active');
+  };
+
+  window.speechSynthesis.speak(utterance);
+}
+
+function stopTtsNarration() {
+  if ('speechSynthesis' in window) {
+    window.speechSynthesis.cancel();
+  }
+  isTtsSpeaking = false;
+  if (ttsLabel) ttsLabel.textContent = 'Listen';
+  readerTtsBtn?.classList.remove('active');
+}
+
+readerTtsBtn?.addEventListener('click', toggleTtsNarration);
+
+// Theme Switching
+function applyReaderTheme(themeClass) {
+  if (!bookSpread) return;
+  bookSpread.classList.remove('theme-parchment', 'theme-dark', 'theme-clean', 'theme-sepia');
+  bookSpread.classList.add(themeClass);
+  localStorage.setItem('reading_room_reader_theme', themeClass);
+}
+
+readerThemeSel?.addEventListener('change', (e) => applyReaderTheme(e.target.value));
+
+// Font Size Controls
+function adjustFontSize(delta) {
+  readerFontSize = Math.min(24, Math.max(12, readerFontSize + delta));
+  localStorage.setItem('reading_room_reader_font', String(readerFontSize));
+  updateReaderFontStyles();
+}
+
+function updateReaderFontStyles() {
+  if (leftPageContent) leftPageContent.style.fontSize = `${readerFontSize}px`;
+  if (rightPageContent) rightPageContent.style.fontSize = `${readerFontSize}px`;
+}
+
+readerFontDown?.addEventListener('click', () => adjustFontSize(-1));
+readerFontUp?.addEventListener('click', () => adjustFontSize(1));
+
+// Fullscreen Toggle
+function toggleReaderFullscreen() {
+  if (!document.fullscreenElement) {
+    bookReaderModal.requestFullscreen().catch(() => {});
+  } else {
+    document.exitFullscreen().catch(() => {});
+  }
+}
+
+readerFullscreenBtn?.addEventListener('click', toggleReaderFullscreen);
+
+// Close Reader
+function closeBookReader() {
+  stopTtsNarration();
+  if (document.fullscreenElement) {
+    document.exitFullscreen().catch(() => {});
+  }
+  hideModal(bookReaderModal);
+}
+
+readerCloseBtn?.addEventListener('click', closeBookReader);
+
+// Keyboard Navigation for Flipbook & Escape key
+window.addEventListener('keydown', (e) => {
+  if (bookReaderModal?.classList.contains('show')) {
+    if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') {
+      e.preventDefault();
+      turnReaderPage(2);
+    } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
+      e.preventDefault();
+      turnReaderPage(-2);
+    } else if (e.key === 'Escape') {
+      closeBookReader();
+    }
+  }
+});
+
+// App Main Event Listeners
 document.getElementById('loginBtn')?.addEventListener('click', login);
 loginRoleBtn?.addEventListener('click', () => setRole('admin'));
 studentRoleBtn?.addEventListener('click', () => setRole('student'));
 document.getElementById('logoutBtn')?.addEventListener('click', () => {
   stopPaymentCamera();
+  stopTtsNarration();
   currentUser = null;
   document.getElementById('app-shell').classList.add('hidden');
   document.getElementById('view-login').classList.remove('hidden');
@@ -1825,3 +2814,4 @@ document.querySelectorAll('.quick-btn').forEach(btn => btn.addEventListener('cli
 window.addEventListener('DOMContentLoaded', () => {
   setRole('admin');
 });
+
