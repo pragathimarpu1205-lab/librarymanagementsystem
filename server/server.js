@@ -2,6 +2,8 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
+const https = require('https');
+const querystring = require('querystring');
 const nodemailer = require('nodemailer');
 const { readableBooks, generateBookContent } = require('./booksData');
 
@@ -151,6 +153,15 @@ let smsLogs = [
   }
 ];
 
+// SMS Gateway Configuration (Supports Fast2SMS or Twilio for real mobile phone SMS)
+let smsSettings = {
+  provider: process.env.SMS_PROVIDER || 'simulated', // 'fast2sms', 'twilio', 'simulated'
+  fast2smsKey: process.env.FAST2SMS_API_KEY || '',
+  twilioSid: process.env.TWILIO_ACCOUNT_SID || '',
+  twilioToken: process.env.TWILIO_AUTH_TOKEN || '',
+  twilioFrom: process.env.TWILIO_PHONE_NUMBER || ''
+};
+
 function dispatchSmsNotification({ type, to, studentName, bookTitle, message, metadata = {} }) {
   const logEntry = {
     id: nextSmsId++,
@@ -163,6 +174,65 @@ function dispatchSmsNotification({ type, to, studentName, bookTitle, message, me
     timestamp: new Date().toISOString(),
     ...metadata
   };
+
+  const cleanPhone = String(to || '').replace(/[^0-9]/g, '');
+
+  // Fast2SMS Delivery (India)
+  if (smsSettings.provider === 'fast2sms' && smsSettings.fast2smsKey && cleanPhone) {
+    const rawNumber = cleanPhone.length > 10 ? cleanPhone.slice(-10) : cleanPhone;
+    const postData = JSON.stringify({
+      route: 'q',
+      message: message,
+      language: 'english',
+      flash: 0,
+      numbers: rawNumber
+    });
+    const req = https.request({
+      hostname: 'www.fast2sms.com',
+      path: '/dev/bulkV2',
+      method: 'POST',
+      headers: {
+        'authorization': smsSettings.fast2smsKey.trim(),
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(postData)
+      }
+    }, res => {
+      let body = '';
+      res.on('data', chunk => body += chunk);
+      res.on('end', () => console.log('[FAST2SMS RESPONSE]', body));
+    });
+    req.on('error', err => console.error('[FAST2SMS ERROR]', err));
+    req.write(postData);
+    req.end();
+  }
+
+  // Twilio Delivery
+  if (smsSettings.provider === 'twilio' && smsSettings.twilioSid && smsSettings.twilioToken && smsSettings.twilioFrom) {
+    const postData = querystring.stringify({
+      To: to,
+      From: smsSettings.twilioFrom,
+      Body: message
+    });
+    const authHeader = 'Basic ' + Buffer.from(`${smsSettings.twilioSid}:${smsSettings.twilioToken}`).toString('base64');
+    const req = https.request({
+      hostname: 'api.twilio.com',
+      path: `/2010-04-01/Accounts/${smsSettings.twilioSid}/Messages.json`,
+      method: 'POST',
+      headers: {
+        'Authorization': authHeader,
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Content-Length': Buffer.byteLength(postData)
+      }
+    }, res => {
+      let body = '';
+      res.on('data', chunk => body += chunk);
+      res.on('end', () => console.log('[TWILIO RESPONSE]', body));
+    });
+    req.on('error', err => console.error('[TWILIO ERROR]', err));
+    req.write(postData);
+    req.end();
+  }
+
   smsLogs.unshift(logEntry);
   if (smsLogs.length > 200) smsLogs.pop();
   console.log('[SMS DISPATCHED]', logEntry.to, ':', logEntry.message);
@@ -197,7 +267,8 @@ function saveData() {
       activityLog,
       emailLogs,
       smsLogs,
-      paymentConfig
+      paymentConfig,
+      smsSettings
     };
     fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2), 'utf8');
   } catch (err) {
@@ -224,6 +295,7 @@ function loadData() {
       if (Array.isArray(data.emailLogs)) emailLogs = data.emailLogs;
       if (Array.isArray(data.smsLogs)) smsLogs = data.smsLogs;
       if (data.paymentConfig) paymentConfig = data.paymentConfig;
+      if (data.smsSettings) smsSettings = data.smsSettings;
       console.log('Loaded persisted data from data.json');
     } catch (err) {
       console.error('Failed to parse data.json:', err);
@@ -1474,6 +1546,29 @@ app.get('/api/payments', (req, res) => {
 // Get all dispatched SMS notifications
 app.get('/api/sms-logs', (req, res) => {
   res.json(smsLogs);
+});
+
+// Get / Update SMS Gateway Config
+app.get('/api/sms-settings', (req, res) => {
+  res.json({
+    provider: smsSettings.provider || 'simulated',
+    fast2smsKey: smsSettings.fast2smsKey ? '••••••••' : '',
+    twilioSid: smsSettings.twilioSid ? '••••••••' : '',
+    twilioFrom: smsSettings.twilioFrom || ''
+  });
+});
+
+app.post('/api/sms-settings', (req, res) => {
+  const { provider, fast2smsKey, twilioSid, twilioToken, twilioFrom } = req.body;
+  if (provider) smsSettings.provider = provider;
+  if (fast2smsKey !== undefined && !fast2smsKey.includes('•')) smsSettings.fast2smsKey = fast2smsKey.trim();
+  if (twilioSid !== undefined && !twilioSid.includes('•')) smsSettings.twilioSid = twilioSid.trim();
+  if (twilioToken !== undefined && !twilioToken.includes('•')) smsSettings.twilioToken = twilioToken.trim();
+  if (twilioFrom !== undefined) smsSettings.twilioFrom = twilioFrom.trim();
+
+  logActivity(`SMS Provider updated to ${smsSettings.provider}`);
+  saveData();
+  res.json({ success: true, message: 'SMS Gateway settings updated successfully.' });
 });
 
 // Send custom instant SMS notification
