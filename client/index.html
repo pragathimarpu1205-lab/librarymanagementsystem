@@ -45,7 +45,6 @@
       </div>
       <div class="nav-tabs" id="navTabs"></div>
       <div class="top-actions">
-        <button class="top-btn" id="openSmsHubTopBtn" title="SMS Logs, Live Alerts & Text Notifications">💬 SMS Hub <span class="sms-badge" id="smsUnreadBadge">2</span></button>
         <button class="top-btn" id="openMailHubTopBtn" title="Email Settings, 1-Click Inbox & Custom Mail">📧 Mail Hub</button>
         <button class="top-btn" id="openPaymentSettingsBtn" title="Configure UPI QR Code for Fine Payments">💳 UPI QR Config</button>
         <div class="user-block">
@@ -315,18 +314,6 @@
           </div>
         </div>
         <div id="myBooksList"></div>
-      </div>
-
-      <!-- Student SMS & Issue Receipt Notifications Panel -->
-      <div class="panel">
-        <div class="panel-header">
-          <div>
-            <h3>📱 My SMS Notifications & Issue Receipts</h3>
-            <div class="panel-sub">Real-time mobile text messages received for book checkouts, exact timestamps, and 2-day return alerts</div>
-          </div>
-          <button class="action-btn" id="refreshStudentSmsBtn">🔄 Refresh SMS</button>
-        </div>
-        <div id="studentSmsContainer"></div>
       </div>
 
       <div class="panel">
@@ -666,69 +653,6 @@
   </div>
 </div>
 
-<!-- 7. SMS NOTIFICATIONS & TEXT ALERTS HUB MODAL -->
-<div class="modal-backdrop" id="smsHubModal">
-  <div class="modal large">
-    <div class="panel-header" style="margin-bottom:12px;">
-      <div>
-        <h3>💬 SMS Text Notifications Hub</h3>
-        <div class="panel-sub">Real-time SMS dispatch log with exact issue timestamps, due alerts & WhatsApp integration</div>
-      </div>
-      <div class="role-toggle" style="margin-bottom:0; max-width:280px;">
-        <button type="button" class="active" id="tabSmsLogsBtn">📜 Dispatched Logs</button>
-        <button type="button" id="tabSmsComposeBtn">✍️ Send SMS</button>
-      </div>
-    </div>
-
-    <!-- TAB 1: SMS Logs & Message Feed -->
-    <div id="tabSmsLogsContent">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
-        <div style="display:flex; gap:8px; align-items:center;">
-          <input type="text" id="smsSearchInput" placeholder="Filter SMS by student, book, or phone…" style="padding:7px 10px; font-size:13px; border:1px solid var(--card-shadow); border-radius:3px; min-width:240px;">
-          <select id="smsTypeFilter" style="padding:7px 10px; font-size:12.5px; border:1px solid var(--card-shadow); border-radius:3px;">
-            <option value="">All Message Types</option>
-            <option value="issue_alert">Book Issue Alerts</option>
-            <option value="2day_alert">2-Day Due Reminders</option>
-            <option value="overdue_alert">Overdue Notices</option>
-            <option value="return_receipt">Return Receipts</option>
-            <option value="welcome">Welcome Messages</option>
-          </select>
-        </div>
-        <button class="action-btn" id="refreshSmsHubBtn">🔄 Refresh Logs</button>
-      </div>
-      <div id="smsHubListContainer" style="max-height:380px; overflow-y:auto; border:1px solid var(--card-shadow); border-radius:4px; padding:10px; background:var(--card);"></div>
-    </div>
-
-    <!-- TAB 2: Direct SMS Composer -->
-    <div id="tabSmsComposeContent" class="hidden">
-      <div class="panel" style="background:var(--card); margin-bottom:0; border:1px solid var(--card-shadow);">
-        <h3>Direct Student SMS Dispatch</h3>
-        <div class="field">
-          <label>Select Student or Enter Mobile</label>
-          <select id="smsComposerStudentSel" style="margin-bottom:6px;">
-            <option value="">-- Choose registered student --</option>
-          </select>
-          <input type="tel" id="smsComposerPhone" placeholder="Mobile Number (e.g. +91 98765 43210)">
-        </div>
-        <div class="field">
-          <label>SMS Message Body</label>
-          <textarea id="smsComposerText" rows="4" placeholder="Type text message to send to student's mobile phone..."></textarea>
-          <div class="hint">Includes simulated SMS gateway dispatch + WhatsApp one-click direct share link.</div>
-        </div>
-        <div style="display:flex; gap:10px;">
-          <button class="confirm-btn" id="btnSendCustomSms" style="flex:1;">📤 Dispatch SMS</button>
-          <button class="action-btn" id="btnWhatsAppShareCustom" style="background:#25D366; color:#fff; border-color:#25D366;">🟢 Open WhatsApp</button>
-        </div>
-        <div id="smsComposerStatus" style="margin-top:10px; font-family:'IBM Plex Mono',monospace; font-size:12px;"></div>
-      </div>
-    </div>
-
-    <div class="modal-actions" style="margin-top:16px;">
-      <button class="btn-cancel" id="closeSmsHubBtn">Close</button>
-    </div>
-  </div>
-</div>
-
 <!-- 8. REALISTIC 3D PAGE-FLIP DIGITAL BOOK READER MODAL -->
 <div class="modal-backdrop" id="bookReaderModal">
   <div class="modal reader-modal">
@@ -818,28 +742,6 @@
       </div>
 
       <button class="reader-nav-btn" id="readerNextBtn">Next Page ▶</button>
-    </div>
-  </div>
-</div>
-
-<!-- FLOATING SMARTPHONE SMS POPUP NOTIFICATION (ON BOOK CHECKOUT) -->
-<div id="smsPopupNotification" class="sms-floating-banner hidden">
-  <div class="sms-banner-header">
-    <div class="sms-app-badge">
-      <span class="sms-icon">💬</span>
-      <span class="sms-sender">MESSAGES • NOW</span>
-    </div>
-    <button class="sms-close-btn" id="smsPopupCloseBtn">✕</button>
-  </div>
-  <div class="sms-banner-body">
-    <div class="sms-title" id="smsPopupTitle">📚 The Reading Room Library Alert</div>
-    <div class="sms-msg" id="smsPopupMessage">Hello Aisha Khan, you have borrowed "Piranesi" on Oct 02, 2026 at 09:30 PM. Due: Oct 16, 2026.</div>
-    <div class="sms-meta">
-      <span class="sms-time" id="smsPopupTime">Oct 02, 09:30 PM</span>
-      <div class="sms-actions">
-        <a class="sms-action-link whatsapp" id="smsPopupWhatsApp" href="#" target="_blank">🟢 WhatsApp</a>
-        <button class="sms-action-link" id="smsPopupViewHub">View SMS Hub</button>
-      </div>
     </div>
   </div>
 </div>
