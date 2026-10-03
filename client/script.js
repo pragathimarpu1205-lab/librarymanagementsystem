@@ -1709,12 +1709,11 @@ function renderCard(book) {
   const statusClass = book.status === 'available' ? 'avail' : (overdue ? 'overdue' : 'out');
   const statusLabel = book.status === 'available' ? 'On shelf' : (overdue ? `Overdue (${daysOverdue(book)}d)` : 'Checked out');
   const dueNote = book.status === 'out' ? `<div class="due-note">${overdue ? 'was due' : 'due back'} ${fmtDate(book.due)} · ${escapeHtml(studentName(book.studentId))}</div>` : '';
-  const readBtn = `<button class="card-read-btn" data-action="readbook" data-id="${book.id}">📖 Read Book</button>`;
   const actions = currentUser?.role === 'admin'
     ? `<div class="card-actions">${book.status === 'available' ? `<button class="action-btn" data-action="goissue" data-id="${book.id}">Issue</button>` : `<button class="action-btn" data-action="return" data-id="${book.id}">Return</button>`}<button class="action-btn danger" data-action="remove" data-id="${book.id}">Remove</button></div>`
     : '';
 
-  card.innerHTML = `<div class="card-inner"><div class="call-number">${escapeHtml(book.call)}</div><div class="card-title">${escapeHtml(book.title)}</div><div class="card-author">${escapeHtml(book.author)}</div><div class="card-genre">${escapeHtml(book.genre)}</div><div class="status-row"><span class="status-dot"><span class="dot ${statusClass}"></span><span class="status-text ${statusClass}">${statusLabel}</span></span></div>${dueNote}<div style="margin-top:8px;">${readBtn}</div>${actions}</div>`;
+  card.innerHTML = `<div class="card-inner"><div class="call-number">${escapeHtml(book.call)}</div><div class="card-title">${escapeHtml(book.title)}</div><div class="card-author">${escapeHtml(book.author)}</div><div class="card-genre">${escapeHtml(book.genre)}</div><div class="status-row"><span class="status-dot"><span class="dot ${statusClass}"></span><span class="status-text ${statusClass}">${statusLabel}</span></span></div>${dueNote}${actions}</div>`;
   return card;
 }
 
