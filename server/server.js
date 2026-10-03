@@ -166,6 +166,7 @@ function dispatchSmsNotification({ type, to, studentName, bookTitle, message, me
   smsLogs.unshift(logEntry);
   if (smsLogs.length > 200) smsLogs.pop();
   console.log('[SMS DISPATCHED]', logEntry.to, ':', logEntry.message);
+  saveData();
   return logEntry;
 }
 
@@ -177,17 +178,75 @@ let paymentConfig = {
   instructions: 'Scan the QR code with any UPI app (Google Pay, PhonePe, Paytm, etc.) to pay your fine of ₹10/day, then submit your transaction reference or screenshot.'
 };
 
+// Data Persistence File (persists students, books, loan records, etc.)
+const DATA_FILE = path.join(__dirname, 'data.json');
+
+function saveData() {
+  try {
+    const data = {
+      fineRate,
+      nextStudentId,
+      nextBookId,
+      nextLoanId,
+      nextPaymentId,
+      nextSmsId,
+      students,
+      books,
+      loanRecords,
+      paymentRecords,
+      activityLog,
+      emailLogs,
+      smsLogs,
+      paymentConfig
+    };
+    fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2), 'utf8');
+  } catch (err) {
+    console.error('Failed to save data.json:', err);
+  }
+}
+
+function loadData() {
+  if (fs.existsSync(DATA_FILE)) {
+    try {
+      const raw = fs.readFileSync(DATA_FILE, 'utf8');
+      const data = JSON.parse(raw);
+      if (typeof data.fineRate === 'number') fineRate = data.fineRate;
+      if (typeof data.nextStudentId === 'number') nextStudentId = data.nextStudentId;
+      if (typeof data.nextBookId === 'number') nextBookId = data.nextBookId;
+      if (typeof data.nextLoanId === 'number') nextLoanId = data.nextLoanId;
+      if (typeof data.nextPaymentId === 'number') nextPaymentId = data.nextPaymentId;
+      if (typeof data.nextSmsId === 'number') nextSmsId = data.nextSmsId;
+      if (Array.isArray(data.students)) students = data.students;
+      if (Array.isArray(data.books)) books = data.books;
+      if (Array.isArray(data.loanRecords)) loanRecords = data.loanRecords;
+      if (Array.isArray(data.paymentRecords)) paymentRecords = data.paymentRecords;
+      if (Array.isArray(data.activityLog)) activityLog = data.activityLog;
+      if (Array.isArray(data.emailLogs)) emailLogs = data.emailLogs;
+      if (Array.isArray(data.smsLogs)) smsLogs = data.smsLogs;
+      if (data.paymentConfig) paymentConfig = data.paymentConfig;
+      console.log('Loaded persisted data from data.json');
+    } catch (err) {
+      console.error('Failed to parse data.json:', err);
+    }
+  } else {
+    saveData();
+  }
+}
+
+// Load persisted data on server startup
+loadData();
+
 // Email Configuration (persisted in email-config.json if updated via UI)
 const EMAIL_CONFIG_FILE = path.join(__dirname, 'email-config.json');
 let emailSettings = {
-  mode: 'custom', // 'gmail', 'outlook', 'ethereal', 'custom'
+  mode: 'gmail',
   service: 'gmail',
   host: 'smtp.gmail.com',
   port: 465,
   secure: true,
-  user: process.env.EMAIL_USER || '',
-  pass: process.env.EMAIL_PASS || '',
-  from: process.env.EMAIL_FROM || process.env.EMAIL_USER || 'The Reading Room Library <noreply@readingroom.edu>'
+  user: process.env.EMAIL_USER || 'readingroomlibrary40@gmail.com',
+  pass: process.env.EMAIL_PASS || 'llfntofniqutlkbh',
+  from: process.env.EMAIL_FROM || 'The Reading Room Library <readingroomlibrary40@gmail.com>'
 };
 
 if (fs.existsSync(EMAIL_CONFIG_FILE)) {
@@ -197,17 +256,13 @@ if (fs.existsSync(EMAIL_CONFIG_FILE)) {
   } catch (e) {
     console.error('Failed to load email-config.json', e);
   }
-}
-
-// Environment variables take precedence if provided in cloud host (Render, Vercel, etc.)
-if (process.env.EMAIL_USER) {
-  emailSettings.user = process.env.EMAIL_USER.trim();
-  emailSettings.from = `The Reading Room Library <${process.env.EMAIL_USER.trim()}>`;
-  emailSettings.service = 'gmail';
-  emailSettings.mode = 'gmail';
-}
-if (process.env.EMAIL_PASS) {
-  emailSettings.pass = process.env.EMAIL_PASS.trim();
+} else {
+  // If email-config.json doesn't exist yet, save default configuration
+  try {
+    fs.writeFileSync(EMAIL_CONFIG_FILE, JSON.stringify(emailSettings, null, 2), 'utf8');
+  } catch (e) {
+    console.error('Failed to write default email-config.json', e);
+  }
 }
 
 function getTransporter() {
@@ -287,6 +342,7 @@ function calculateFine(dueDate, returnedDate = new Date()) {
 function logActivity(text) {
   activityLog.unshift({ time: new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }), text });
   if (activityLog.length > 50) activityLog.pop();
+  saveData();
 }
 
 function generateEmailTemplate({ title, heading, bodyHtml, alertText, actionText, footerText }) {
@@ -353,6 +409,7 @@ async function sendEmail(options) {
     logEntry.notes = 'EMAIL_USER/EMAIL_PASS not configured. Simulated delivery.';
     emailLogs.unshift(logEntry);
     if (emailLogs.length > 100) emailLogs.pop();
+    saveData();
     return { success: true, simulated: true, message: 'Simulated email sent. Configure SMTP or 1-Click Test Inbox in Email Hub for real delivery.' };
   }
 
@@ -374,6 +431,7 @@ async function sendEmail(options) {
     logEntry.messageId = info.messageId;
     emailLogs.unshift(logEntry);
     if (emailLogs.length > 100) emailLogs.pop();
+    saveData();
     return { success: true, messageId: info.messageId, previewUrl };
   } catch (error) {
     let friendlyError = error.message;
@@ -385,6 +443,7 @@ async function sendEmail(options) {
     logEntry.error = friendlyError;
     emailLogs.unshift(logEntry);
     if (emailLogs.length > 100) emailLogs.pop();
+    saveData();
     return { success: false, error: friendlyError, rawError: error.message };
   }
 }
@@ -739,6 +798,18 @@ app.put('/students/:id', (req, res) => {
 
   logActivity(`Student "${student.name}" details updated (Email: ${student.email}, Phone: ${student.phone})`);
   res.json({ success: true, student: formatStudent(student), message: 'Student updated successfully.' });
+});
+
+// Delete student account
+app.delete('/students/:id', (req, res) => {
+  const id = Number(req.params.id);
+  const index = students.findIndex(s => s.id === id);
+  if (index === -1) {
+    return res.json({ success: false, message: 'Student not found.' });
+  }
+  const [removed] = students.splice(index, 1);
+  logActivity(`Student "${removed.name}" (${removed.email}) deleted`);
+  res.json({ success: true, message: 'Student account deleted successfully.' });
 });
 
 // Add book (with rich chapters for digital flipbook reader)
