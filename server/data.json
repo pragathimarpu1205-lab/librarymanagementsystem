@@ -1,10 +1,10 @@
 {
   "fineRate": 10,
-  "nextStudentId": 6,
+  "nextStudentId": 8,
   "nextBookId": 11,
-  "nextLoanId": 6,
-  "nextPaymentId": 1,
-  "nextSmsId": 10,
+  "nextLoanId": 8,
+  "nextPaymentId": 2,
+  "nextSmsId": 14,
   "students": [
     {
       "id": 1,
@@ -45,6 +45,22 @@
       "password": "12345",
       "email": "grandhikavya00@gmail.com",
       "phone": "9652886689"
+    },
+    {
+      "id": 6,
+      "name": "jaanu",
+      "username": "janu123",
+      "password": "12345",
+      "email": "lankajahnavi009@gmail.com",
+      "phone": "7569072540"
+    },
+    {
+      "id": 7,
+      "name": "spandhana",
+      "username": "spandana123",
+      "password": "12345",
+      "email": "261904150002@cutmap.ac.in",
+      "phone": "9032810567"
     }
   ],
   "books": [
@@ -128,7 +144,7 @@
       "author": "Robin Wall Kimmerer",
       "genre": "Nature Writing",
       "call": "581.6 KIM",
-      "status": "available",
+      "status": "out",
       "coverTheme": "emerald",
       "publicationYear": "2013",
       "pagesCount": 6,
@@ -157,7 +173,10 @@
             "We breathe in what the trees exhale; they drink in what we release. The braid of life is never broken if we remember to return the gift."
           ]
         }
-      ]
+      ],
+      "studentId": 1,
+      "issued": "2026-10-03T12:54:45.921Z",
+      "due": "2026-10-17T12:54:45.922Z"
     },
     {
       "id": 4,
@@ -322,7 +341,7 @@
       "author": "Madeline Miller",
       "genre": "Mythology",
       "call": "813.6 MIL",
-      "status": "available",
+      "status": "out",
       "coverTheme": "copper",
       "publicationYear": "2018",
       "pagesCount": 6,
@@ -351,7 +370,10 @@
             "I stood on the promontory, feeling the spray of the ocean on my skin, watching the dawn rise with light entirely my own."
           ]
         }
-      ]
+      ],
+      "studentId": 1,
+      "issued": "2026-10-03T12:58:41.434Z",
+      "due": "2026-10-17T12:58:41.434Z"
     },
     {
       "id": 9,
@@ -551,10 +573,99 @@
         "due": false,
         "overdue": false
       }
+    },
+    {
+      "id": 6,
+      "bookId": 3,
+      "studentId": 1,
+      "title": "Braiding Sweetgrass",
+      "author": "Robin Wall Kimmerer",
+      "studentName": "Aisha Khan",
+      "studentPhone": "+91 98765 43210",
+      "issued": "2026-10-03T12:54:45.921Z",
+      "due": "2026-10-17T12:54:45.922Z",
+      "issuedDate": "03 Oct 2026",
+      "issuedTime": "06:24 PM",
+      "issuedTimestamp": "2026-10-03T12:54:45.920Z",
+      "dueText": "17 Oct 2026",
+      "loanDays": 14,
+      "returned": null,
+      "fineAmount": null,
+      "paymentStatus": "pending",
+      "fineRateAtLoan": 10,
+      "reminders": {
+        "twoDays": false,
+        "threeDays": false,
+        "oneDay": false,
+        "due": false,
+        "overdue": false
+      }
+    },
+    {
+      "id": 7,
+      "bookId": 8,
+      "studentId": 1,
+      "title": "Circe",
+      "author": "Madeline Miller",
+      "studentName": "Aisha Khan",
+      "studentPhone": "+91 98765 43210",
+      "issued": "2026-10-03T12:58:41.434Z",
+      "due": "2026-10-17T12:58:41.434Z",
+      "issuedDate": "03 Oct 2026",
+      "issuedTime": "06:28 PM",
+      "issuedTimestamp": "2026-10-03T12:58:41.433Z",
+      "dueText": "17 Oct 2026",
+      "loanDays": 14,
+      "returned": null,
+      "fineAmount": null,
+      "paymentStatus": "pending",
+      "fineRateAtLoan": 10,
+      "reminders": {
+        "twoDays": false,
+        "threeDays": false,
+        "oneDay": false,
+        "due": false,
+        "overdue": false
+      }
     }
   ],
-  "paymentRecords": [],
+  "paymentRecords": [
+    {
+      "id": 1,
+      "loanId": null,
+      "studentId": 2,
+      "studentName": "Diego Ramirez",
+      "studentEmail": "diego@gmail.com",
+      "bookTitle": "Library Fine Settlement",
+      "amount": 40,
+      "transactionId": "UPI-815443",
+      "screenshot": null,
+      "notes": "",
+      "status": "verified",
+      "createdAt": "2026-10-03T12:50:15.446Z"
+    }
+  ],
   "activityLog": [
+    {
+      "time": "18:28",
+      "text": "\"Circe\" issued to Aisha Khan on 03 Oct 2026 at 06:28 PM (SMS sent to +91 98765 43210)"
+    },
+    {
+      "time": "18:28",
+      "text": "spandhana registered as a new student (261904150002@cutmap.ac.in, 9032810567)"
+    },
+    {
+      "time": "18:24",
+      "text": "\"Braiding Sweetgrass\" issued to Aisha Khan on 03 Oct 2026 at 06:24 PM (SMS sent to +91 98765 43210)"
+    },
+    {
+      "time": "18:24",
+      "text": "jaanu registered as a new student (lankajahnavi009@gmail.com, 7569072540)"
+    },
+    {
+      "time": "18:20",
+      "text": "Fine of ₹40 paid by Diego Ramirez for \"Library Fine Settlement\" (Ref: UPI-815443)"
+    },
     {
       "time": "17:30",
       "text": "\"The Sympathizer\" issued to kavya on 03 Oct 2026 at 05:30 PM (SMS sent to 9652886689)"
@@ -585,6 +696,96 @@
     }
   ],
   "emailLogs": [
+    {
+      "id": 15,
+      "to": "261904150002@cutmap.ac.in",
+      "subject": "java",
+      "timestamp": "2026-10-03T12:59:16.201Z",
+      "status": "success",
+      "error": null,
+      "previewUrl": null,
+      "messageId": "<f43def2d-7b13-b432-da46-7f0da0887d85@gmail.com>"
+    },
+    {
+      "id": 14,
+      "to": "aisha@gmail.com",
+      "subject": "Book Issued: \"Circe\" (03 Oct 2026 at 06:28 PM)",
+      "timestamp": "2026-10-03T12:58:41.436Z",
+      "status": "success",
+      "error": null,
+      "previewUrl": null,
+      "messageId": "<d7e05821-3f0f-fbb7-9256-5b8ba41e563a@gmail.com>"
+    },
+    {
+      "id": 13,
+      "to": "261904150002@cutmap.ac.in",
+      "subject": "Welcome to The Reading Room Library",
+      "timestamp": "2026-10-03T12:58:24.121Z",
+      "status": "success",
+      "error": null,
+      "previewUrl": null,
+      "messageId": "<c5811ce7-2bad-f5dc-fcbb-ebaae6a4ed66@gmail.com>"
+    },
+    {
+      "id": 12,
+      "to": "lankajahnavi009@gmail.com",
+      "subject": "Beloved",
+      "timestamp": "2026-10-03T12:55:41.207Z",
+      "status": "success",
+      "error": null,
+      "previewUrl": null,
+      "messageId": "<fbc36db5-4297-1e72-552b-baa231bd005e@gmail.com>"
+    },
+    {
+      "id": 11,
+      "to": "aisha@gmail.com",
+      "subject": "Book Issued: \"Braiding Sweetgrass\" (03 Oct 2026 at 06:24 PM)",
+      "timestamp": "2026-10-03T12:54:45.924Z",
+      "status": "success",
+      "error": null,
+      "previewUrl": null,
+      "messageId": "<6824afd2-7564-7c6d-da87-3684f1cea6fa@gmail.com>"
+    },
+    {
+      "id": 10,
+      "to": "lankajahnavi009@gmail.com",
+      "subject": "Welcome to The Reading Room Library",
+      "timestamp": "2026-10-03T12:54:29.461Z",
+      "status": "success",
+      "error": null,
+      "previewUrl": null,
+      "messageId": "<a9cdabca-72e2-c06f-f20c-782d17fd8683@gmail.com>"
+    },
+    {
+      "id": 9,
+      "to": "grandhikavya00@gmail.com",
+      "subject": "Beloved",
+      "timestamp": "2026-10-03T12:51:20.915Z",
+      "status": "success",
+      "error": null,
+      "previewUrl": null,
+      "messageId": "<38d9fcdf-f9f4-657d-d262-381c25c9ce2e@gmail.com>"
+    },
+    {
+      "id": 8,
+      "to": "pragathimarpu55@gmail.com",
+      "subject": "Beloved",
+      "timestamp": "2026-10-03T12:50:47.116Z",
+      "status": "success",
+      "error": null,
+      "previewUrl": null,
+      "messageId": "<b3f06570-2d99-875a-d869-bed7e67404ea@gmail.com>"
+    },
+    {
+      "id": 7,
+      "to": "diego@gmail.com",
+      "subject": "Receipt: Library Fine Payment of ₹40 Received",
+      "timestamp": "2026-10-03T12:50:15.448Z",
+      "status": "success",
+      "error": null,
+      "previewUrl": null,
+      "messageId": "<e20c98d5-ec20-251a-4a47-4d24e063c57a@gmail.com>"
+    },
     {
       "id": 6,
       "to": "grandhikavya00@gmail.com",
@@ -647,6 +848,60 @@
     }
   ],
   "smsLogs": [
+    {
+      "id": 13,
+      "type": "issue_alert",
+      "to": "+91 98765 43210",
+      "studentName": "Aisha Khan",
+      "bookTitle": "Circe",
+      "message": "📚 The Reading Room Library Alert: Hello Aisha Khan, you have checked out \"Circe\" by Madeline Miller on 03 Oct 2026 at 06:28 PM. Due Date: 17 Oct 2026 (14 days). Late fine: ₹10/day. Enjoy reading!",
+      "status": "delivered",
+      "timestamp": "2026-10-03T12:58:41.434Z",
+      "loanId": 7,
+      "bookId": 8,
+      "studentId": 1,
+      "issuedDate": "03 Oct 2026",
+      "issuedTime": "06:28 PM",
+      "dueDate": "17 Oct 2026",
+      "loanDays": 14
+    },
+    {
+      "id": 12,
+      "type": "welcome",
+      "to": "9032810567",
+      "studentName": "spandhana",
+      "bookTitle": "Library Membership Active",
+      "message": "🎉 Welcome to The Reading Room Library, spandhana! Your membership is active. You can now browse our catalog, read digital flipbooks, and borrow titles.",
+      "status": "delivered",
+      "timestamp": "2026-10-03T12:58:24.120Z"
+    },
+    {
+      "id": 11,
+      "type": "issue_alert",
+      "to": "+91 98765 43210",
+      "studentName": "Aisha Khan",
+      "bookTitle": "Braiding Sweetgrass",
+      "message": "📚 The Reading Room Library Alert: Hello Aisha Khan, you have checked out \"Braiding Sweetgrass\" by Robin Wall Kimmerer on 03 Oct 2026 at 06:24 PM. Due Date: 17 Oct 2026 (14 days). Late fine: ₹10/day. Enjoy reading!",
+      "status": "delivered",
+      "timestamp": "2026-10-03T12:54:45.922Z",
+      "loanId": 6,
+      "bookId": 3,
+      "studentId": 1,
+      "issuedDate": "03 Oct 2026",
+      "issuedTime": "06:24 PM",
+      "dueDate": "17 Oct 2026",
+      "loanDays": 14
+    },
+    {
+      "id": 10,
+      "type": "welcome",
+      "to": "7569072540",
+      "studentName": "jaanu",
+      "bookTitle": "Library Membership Active",
+      "message": "🎉 Welcome to The Reading Room Library, jaanu! Your membership is active. You can now browse our catalog, read digital flipbooks, and borrow titles.",
+      "status": "delivered",
+      "timestamp": "2026-10-03T12:54:29.460Z"
+    },
     {
       "id": 9,
       "type": "custom_alert",
@@ -769,5 +1024,12 @@
     "payeeName": "The Reading Room Library",
     "qrCodeImage": null,
     "instructions": "Scan the QR code with any UPI app (Google Pay, PhonePe, Paytm, etc.) to pay your fine of ₹10/day, then submit your transaction reference or screenshot."
+  },
+  "smsSettings": {
+    "provider": "simulated",
+    "fast2smsKey": "",
+    "twilioSid": "",
+    "twilioToken": "",
+    "twilioFrom": ""
   }
 }

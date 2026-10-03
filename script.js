@@ -1,0 +1,2984 @@
+const API_BASE = "/";
+let currentUser = null;
+let books = [];
+let students = [];
+let activityLog = [];
+let loanRecords = [];
+let paymentRecords = [];
+let emailLogs = [];
+let smsLogs = [];
+let fineRate = 10;
+let paymentConfig = {
+  upiId: 'librarypay@upi',
+  payeeName: 'The Reading Room Library',
+  qrCodeImage: null,
+  instructions: 'Scan the QR code with any UPI app to pay your fine of ₹10/day.'
+};
+let currentProfileId = null;
+let currentRole = 'admin';
+let currentView = 'admin-dashboard';
+let activePaymentLoan = null;
+
+// Payment Scanner State
+let payQrScanner = null;
+let isPayCamRunning = false;
+
+// Digital Flipbook Reader State
+let activeReadingBook = null;
+let currentReadingPage = 1;
+let totalReadingPages = 6;
+let readerFontSize = 15;
+let isTtsSpeaking = false;
+let audioCtx = null;
+
+// DOM Elements
+const views = document.querySelectorAll('.view');
+const navTabs = document.getElementById('navTabs');
+const loginUser = document.getElementById('loginUser');
+const loginPass = document.getElementById('loginPass');
+const loginRoleBtn = document.getElementById('roleAdminBtn');
+const studentRoleBtn = document.getElementById('roleStudentBtn');
+const registerStudentBtn = document.getElementById('registerStudentBtn');
+const loginError = document.getElementById('loginError');
+const globalAlert = document.getElementById('globalAlert');
+const stampFlash = document.getElementById('stampFlash');
+
+// Topbar Action Buttons
+const openSmsHubTopBtn = document.getElementById('openSmsHubTopBtn');
+const smsUnreadBadge = document.getElementById('smsUnreadBadge');
+const openMailHubTopBtn = document.getElementById('openMailHubTopBtn');
+const openPaymentSettingsBtn = document.getElementById('openPaymentSettingsBtn');
+
+// SMS & Alerts Hub Elements
+const smsHubModal = document.getElementById('smsHubModal');
+const tabSmsLogsBtn = document.getElementById('tabSmsLogsBtn');
+const tabSmsComposeBtn = document.getElementById('tabSmsComposeBtn');
+const tabSmsLogsContent = document.getElementById('tabSmsLogsContent');
+const tabSmsComposeContent = document.getElementById('tabSmsComposeContent');
+const smsSearchInput = document.getElementById('smsSearchInput');
+const smsTypeFilter = document.getElementById('smsTypeFilter');
+const refreshSmsHubBtn = document.getElementById('refreshSmsHubBtn');
+const smsHubListContainer = document.getElementById('smsHubListContainer');
+const smsComposerStudentSel = document.getElementById('smsComposerStudentSel');
+const smsComposerPhone = document.getElementById('smsComposerPhone');
+const smsComposerText = document.getElementById('smsComposerText');
+const btnSendCustomSms = document.getElementById('btnSendCustomSms');
+const btnWhatsAppShareCustom = document.getElementById('btnWhatsAppShareCustom');
+const smsComposerStatus = document.getElementById('smsComposerStatus');
+const closeSmsHubBtn = document.getElementById('closeSmsHubBtn');
+
+// Floating Smartphone SMS Banner Elements
+const smsPopupNotification = document.getElementById('smsPopupNotification');
+const smsPopupTitle = document.getElementById('smsPopupTitle');
+const smsPopupMessage = document.getElementById('smsPopupMessage');
+const smsPopupTime = document.getElementById('smsPopupTime');
+const smsPopupWhatsApp = document.getElementById('smsPopupWhatsApp');
+const smsPopupViewHub = document.getElementById('smsPopupViewHub');
+const smsPopupCloseBtn = document.getElementById('smsPopupCloseBtn');
+
+// Digital 3D Book Reader Elements
+const bookReaderModal = document.getElementById('bookReaderModal');
+const readerTitle = document.getElementById('readerTitle');
+const readerAuthor = document.getElementById('readerAuthor');
+const readerBookmarkBtn = document.getElementById('readerBookmarkBtn');
+const bookmarkLabel = document.getElementById('bookmarkLabel');
+const readerTtsBtn = document.getElementById('readerTtsBtn');
+const ttsLabel = document.getElementById('ttsLabel');
+const readerThemeSel = document.getElementById('readerThemeSel');
+const readerFontDown = document.getElementById('readerFontDown');
+const readerFontUp = document.getElementById('readerFontUp');
+const readerFullscreenBtn = document.getElementById('readerFullscreenBtn');
+const readerCloseBtn = document.getElementById('readerCloseBtn');
+const readerViewport = document.getElementById('readerViewport');
+const bookSpread = document.getElementById('bookSpread');
+const pageLeft = document.getElementById('pageLeft');
+const pageRight = document.getElementById('pageRight');
+const leftHeaderBook = document.getElementById('leftHeaderBook');
+const leftHeaderChapter = document.getElementById('leftHeaderChapter');
+const leftPageContent = document.getElementById('leftPageContent');
+const leftPageNum = document.getElementById('leftPageNum');
+const rightHeaderBook = document.getElementById('rightHeaderBook');
+const rightHeaderChapter = document.getElementById('rightHeaderChapter');
+const rightPageContent = document.getElementById('rightPageContent');
+const rightPageNum = document.getElementById('rightPageNum');
+const pageCurlCorner = document.getElementById('pageCurlCorner');
+const readerPrevBtn = document.getElementById('readerPrevBtn');
+const readerNextBtn = document.getElementById('readerNextBtn');
+const readerChapterJump = document.getElementById('readerChapterJump');
+const readerPageIndicator = document.getElementById('readerPageIndicator');
+
+// Admin Elements
+const studentSearchInput = document.getElementById('studentSearchInput');
+const studentSearchResults = document.getElementById('studentSearchResults');
+const studentListSearchInput = document.getElementById('studentListSearchInput');
+const studentCount = document.getElementById('studentCount');
+const fineRateInput = document.getElementById('fineRateInput');
+const saveFineRateBtn = document.getElementById('saveFineRateBtn');
+const triggerRemindersBtn = document.getElementById('triggerRemindersBtn');
+const refreshPaymentsBtn = document.getElementById('refreshPaymentsBtn');
+
+// Student Profile Elements
+const profileName = document.getElementById('profileName');
+const profileId = document.getElementById('profileId');
+const profileEmail = document.getElementById('profileEmail');
+const profileOutstanding = document.getElementById('profileOutstanding');
+const profileCurrentBody = document.getElementById('profileCurrentBody');
+const profileHistoryBody = document.getElementById('profileHistoryBody');
+const profileBackBtn = document.getElementById('profileBackBtn');
+const profileIssueBtn = document.getElementById('profileIssueBtn');
+const profilePayFineBtn = document.getElementById('profilePayFineBtn');
+
+// Modals
+const addModal = document.getElementById('addModal');
+const addBookBtn = document.getElementById('addBookBtn');
+const addStudentModal = document.getElementById('addStudentModal');
+const paymentModal = document.getElementById('paymentModal');
+const receiptModal = document.getElementById('receiptModal');
+const paymentSettingsModal = document.getElementById('paymentSettingsModal');
+const proofViewModal = document.getElementById('proofViewModal');
+
+// ----------------------------------------------------
+// CLIENT-SIDE MOCK STORE (FALLBACK FOR STATIC HOSTING)
+// ----------------------------------------------------
+const MOCK_STORAGE_KEY = 'reading_room_library_db';
+
+function getMockDB() {
+  const saved = localStorage.getItem(MOCK_STORAGE_KEY);
+  if (saved) {
+    try { return JSON.parse(saved); } catch (e) {}
+  }
+  const initial = {
+    fineRate: 10,
+    admin: { username: 'admin', password: 'admin123', name: 'Ms. Okafor' },
+    students: [
+      { id: 1, name: 'Aisha Khan', username: 'student', password: 'student123', email: 'aisha@gmail.com', phone: '+91 98765 43210' },
+      { id: 2, name: 'Diego Ramirez', username: 'diego', password: 'student123', email: 'diego@gmail.com', phone: '+91 98765 43211' },
+      { id: 3, name: 'Wei Chen', username: 'wei', password: 'student123', email: 'wei@gmail.com', phone: '+91 98765 43212' }
+    ],
+    books: [
+      { id: 1, title: 'Beloved', author: 'Toni Morrison', genre: 'Literary Fiction', call: '813.54 MOR', status: 'available' },
+      { id: 2, title: 'The Left Hand of Darkness', author: 'Ursula K. Le Guin', genre: 'Science Fiction', call: '813.54 LEG', status: 'available' },
+      { id: 3, title: 'Braiding Sweetgrass', author: 'Robin Wall Kimmerer', genre: 'Nature Writing', call: '581.6 KIM', status: 'available' },
+      { id: 4, title: 'The Brothers Karamazov', author: 'Fyodor Dostoevsky', genre: 'Classic', call: '891.73 DOS', status: 'out', studentId: 2, issued: daysFromNow(-17), due: daysFromNow(-3) },
+      { id: 5, title: 'Piranesi', author: 'Susanna Clarke', genre: 'Fantasy', call: '823.92 CLA', status: 'out', studentId: 1, issued: daysFromNow(-12), due: daysFromNow(2) },
+      { id: 6, title: 'How to Do Nothing', author: 'Jenny Odell', genre: 'Essays', call: '303.483 ODE', status: 'available' },
+      { id: 7, title: 'The Overstory', author: 'Richard Powers', genre: 'Literary Fiction', call: '813.54 POW', status: 'out', studentId: 3, issued: daysFromNow(-15), due: daysFromNow(-1) },
+      { id: 8, title: 'Circe', author: 'Madeline Miller', genre: 'Mythology', call: '813.6 MIL', status: 'available' },
+      { id: 9, title: 'An Immense World', author: 'Ed Yong', genre: 'Science', call: '591.5 YON', status: 'available' },
+      { id: 10, title: 'The Sympathizer', author: 'Viet Thanh Nguyen', genre: 'Literary Fiction', call: '813.6 NGU', status: 'available' }
+    ],
+    loanRecords: [
+      { id: 1, bookId: 4, studentId: 2, title: 'The Brothers Karamazov', issued: daysFromNow(-17), due: daysFromNow(-3), returned: null, fineAmount: 30, paymentStatus: 'pending', fineRateAtLoan: 10, issuedDate: fmtDate(daysFromNow(-17)), issuedTime: '10:30 AM', reminders: { twoDays: true, overdue: true } },
+      { id: 2, bookId: 5, studentId: 1, title: 'Piranesi', issued: daysFromNow(-12), due: daysFromNow(2), returned: null, fineAmount: null, paymentStatus: 'pending', fineRateAtLoan: 10, issuedDate: fmtDate(daysFromNow(-12)), issuedTime: '02:15 PM', reminders: { twoDays: false, overdue: false } },
+      { id: 3, bookId: 7, studentId: 3, title: 'The Overstory', issued: daysFromNow(-15), due: daysFromNow(-1), returned: null, fineAmount: 10, paymentStatus: 'pending', fineRateAtLoan: 10, issuedDate: fmtDate(daysFromNow(-15)), issuedTime: '11:45 AM', reminders: { twoDays: true, overdue: true } }
+    ],
+    activityLog: [
+      { time: 'Now', text: 'System ready. ₹10/day fine system, 2-day alerts, SMS text alerts & 3D Book Flip Reader active.' }
+    ],
+    paymentRecords: [],
+    emailLogs: [
+      { id: 1, timestamp: new Date().toISOString(), type: '2-Day Return Alert', recipient: 'aisha@gmail.com', subject: '⏰ 2-Day Return Reminder: Piranesi', status: 'delivered', previewUrl: 'https://ethereal.email/message/sample-2day' }
+    ],
+    smsLogs: [
+      {
+        id: 1,
+        type: 'issue_alert',
+        to: '+91 98765 43211',
+        studentName: 'Diego Ramirez',
+        bookTitle: 'The Brothers Karamazov',
+        issuedDate: fmtDate(daysFromNow(-17)),
+        issuedTime: '10:30 AM',
+        dueDate: fmtDate(daysFromNow(-3)),
+        message: '📚 The Reading Room Library Alert: Hello Diego Ramirez, you have borrowed "The Brothers Karamazov" on ' + fmtDate(daysFromNow(-17)) + ' at 10:30 AM. Due Date: ' + fmtDate(daysFromNow(-3)) + '. Late fine: ₹10/day.',
+        status: 'delivered',
+        timestamp: daysFromNow(-17)
+      },
+      {
+        id: 2,
+        type: 'issue_alert',
+        to: '+91 98765 43210',
+        studentName: 'Aisha Khan',
+        bookTitle: 'Piranesi',
+        issuedDate: fmtDate(daysFromNow(-12)),
+        issuedTime: '02:15 PM',
+        dueDate: fmtDate(daysFromNow(2)),
+        message: '📚 The Reading Room Library Alert: Hello Aisha Khan, you have borrowed "Piranesi" on ' + fmtDate(daysFromNow(-12)) + ' at 02:15 PM. Due Date: ' + fmtDate(daysFromNow(2)) + '. Late fine: ₹10/day.',
+        status: 'delivered',
+        timestamp: daysFromNow(-12)
+      }
+    ],
+    paymentConfig: {
+      upiId: 'librarypay@upi',
+      payeeName: 'The Reading Room Library',
+      qrCodeImage: null,
+      instructions: 'Scan the QR code with any UPI app to pay your fine of ₹10/day.'
+    },
+    emailSettings: {
+      service: 'ethereal',
+      user: 'demo@ethereal.email',
+      from: 'The Reading Room <noreply@readingroom.edu>',
+      mode: 'ethereal'
+    },
+    nextStudentId: 4,
+    nextBookId: 11,
+    nextLoanId: 4,
+    nextPaymentId: 1,
+    nextSmsId: 3
+  };
+  saveMockDB(initial);
+  return initial;
+}
+
+function saveMockDB(db) {
+  try { localStorage.setItem(MOCK_STORAGE_KEY, JSON.stringify(db)); } catch (e) {}
+}
+
+function handleMockApi(path, options = {}) {
+  const db = getMockDB();
+  const method = (options.method || 'GET').toUpperCase();
+  const body = options.body ? JSON.parse(options.body) : {};
+  const cleanPath = path.replace(/^\/+/, '').split('?')[0];
+
+  // 1. Login
+  if (cleanPath === 'login' && method === 'POST') {
+    const { username, password, role } = body;
+    const u = (username || '').toLowerCase();
+    if (role === 'admin' || !role) {
+      if ((u === 'admin' || u === 'admin@readingroom.edu') && password === 'admin123') {
+        return { success: true, user: { ...db.admin, role: 'admin' } };
+      }
+    }
+    const student = db.students.find(s => s.username.toLowerCase() === u || s.email.toLowerCase() === u);
+    if (student && (student.password === password || password === 'student123')) {
+      return { success: true, user: { ...student, role: 'student' } };
+    }
+    return { success: false, message: 'Invalid credentials. Use demo login admin / admin123 or student / student123' };
+  }
+
+  // 2. Books
+  if (cleanPath === 'books') {
+    if (method === 'GET') return db.books;
+    if (method === 'POST') {
+      const newBook = { id: db.nextBookId++, title: body.title, author: body.author, genre: body.genre, call: '800 ' + body.title.slice(0, 3).toUpperCase(), status: 'available' };
+      db.books.unshift(newBook);
+      db.activityLog.unshift({ time: 'Just now', text: `Added title "${newBook.title}" by ${newBook.author}` });
+      saveMockDB(db);
+      return { success: true, book: newBook };
+    }
+  }
+
+  // 3. Delete Book
+  if (cleanPath.startsWith('books/') && method === 'DELETE') {
+    const id = Number(cleanPath.split('/')[1]);
+    db.books = db.books.filter(b => b.id !== id);
+    saveMockDB(db);
+    return { success: true };
+  }
+
+  // 4. Students
+  if (cleanPath === 'students') {
+    if (method === 'GET') return db.students;
+    if (method === 'POST') {
+      const phone = body.phone || `+91 98765 ${Math.floor(10000 + Math.random() * 90000)}`;
+      const newStudent = { id: db.nextStudentId++, name: body.name, username: body.username, password: body.password || 'student123', email: body.email, phone };
+      db.students.push(newStudent);
+      db.activityLog.unshift({ time: 'Just now', text: `Registered student ${newStudent.name} (${newStudent.username}, ${phone})` });
+      
+      const welcomeSms = {
+        id: db.nextSmsId++,
+        type: 'welcome',
+        to: phone,
+        studentName: newStudent.name,
+        bookTitle: 'Library Membership',
+        message: `🎉 Welcome to The Reading Room Library, ${newStudent.name}! Your membership is active. You can borrow books and read 3D digital flipbooks anytime.`,
+        status: 'delivered',
+        timestamp: new Date().toISOString()
+      };
+      db.smsLogs = db.smsLogs || [];
+      db.smsLogs.unshift(welcomeSms);
+
+      saveMockDB(db);
+      return { success: true, student: newStudent, sms: welcomeSms };
+    }
+  }
+
+  // 5. Activity
+  if (cleanPath === 'activity') return db.activityLog;
+
+  // 6. Fine Rate
+  if (cleanPath === 'fine-rate') {
+    if (method === 'GET') return { fineRate: db.fineRate };
+    if (method === 'POST') {
+      db.fineRate = Number(body.fineRate) || 10;
+      saveMockDB(db);
+      return { success: true, fineRate: db.fineRate };
+    }
+  }
+
+  // 7. Loans / Issue (With Exact Date & Time and SMS)
+  if (cleanPath === 'loans' || cleanPath === 'issue') {
+    if (cleanPath === 'loans' && method === 'GET') return db.loanRecords;
+    if (method === 'POST') {
+      const { bookId, studentId, days } = body;
+      const book = db.books.find(b => b.id === Number(bookId));
+      const student = db.students.find(s => s.id === Number(studentId));
+      const loanDays = Number(days) || 14;
+      const now = new Date();
+      const formattedDate = now.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+      const formattedTime = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+      const dueText = fmtDate(daysFromNow(loanDays));
+
+      if (book) {
+        book.status = 'out';
+        book.studentId = Number(studentId);
+        book.issued = now.toISOString();
+        book.due = daysFromNow(loanDays);
+      }
+
+      const newLoan = {
+        id: db.nextLoanId++,
+        bookId: Number(bookId),
+        studentId: Number(studentId),
+        title: book ? book.title : 'Book #' + bookId,
+        author: book ? book.author : 'Author',
+        studentName: student ? student.name : 'Student',
+        studentPhone: student?.phone || '+91 98765 43210',
+        issued: now.toISOString(),
+        due: daysFromNow(loanDays),
+        issuedDate: formattedDate,
+        issuedTime: formattedTime,
+        dueText,
+        loanDays,
+        returned: null,
+        fineAmount: null,
+        paymentStatus: 'pending',
+        fineRateAtLoan: db.fineRate,
+        reminders: { twoDays: false, overdue: false }
+      };
+      db.loanRecords.unshift(newLoan);
+
+      // Create SMS Record with exact Date & Time
+      const smsMessage = `📚 The Reading Room Library Alert: Hello ${student?.name || 'Student'}, you have checked out "${book?.title || 'Book'}" on ${formattedDate} at ${formattedTime}. Due Date: ${dueText} (${loanDays} days). Late fine: ₹${db.fineRate}/day. Happy Reading!`;
+      const smsRecord = {
+        id: db.nextSmsId++,
+        type: 'issue_alert',
+        to: student?.phone || '+91 98765 43210',
+        studentName: student?.name || 'Student',
+        bookTitle: book?.title || 'Book',
+        issuedDate: formattedDate,
+        issuedTime: formattedTime,
+        dueDate: dueText,
+        message: smsMessage,
+        status: 'delivered',
+        timestamp: now.toISOString()
+      };
+      db.smsLogs = db.smsLogs || [];
+      db.smsLogs.unshift(smsRecord);
+
+      db.activityLog.unshift({ time: 'Just now', text: `Issued "${newLoan.title}" to ${student?.name || 'Student'} on ${formattedDate} at ${formattedTime} (SMS Sent)` });
+      saveMockDB(db);
+      return { success: true, loan: newLoan, sms: smsRecord };
+    }
+  }
+
+  // 8. Return Loan
+  if ((cleanPath.startsWith('loans/') && cleanPath.endsWith('/return')) || cleanPath === 'return') {
+    const bookId = body.bookId ? Number(body.bookId) : Number(cleanPath.split('/')[1]);
+    const book = db.books.find(b => b.id === bookId);
+    const loan = db.loanRecords.find(l => l.bookId === bookId && !l.returned);
+    const student = loan ? db.students.find(s => s.id === loan.studentId) : null;
+    let fineAmount = 0;
+    const now = new Date();
+    const returnDate = now.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+    const returnTime = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+
+    if (book) {
+      book.status = 'available';
+      book.studentId = null;
+    }
+    if (loan) {
+      loan.returned = now.toISOString();
+      loan.returnDate = returnDate;
+      loan.returnTime = returnTime;
+      const diff = Math.ceil((now - new Date(loan.due)) / (1000 * 60 * 60 * 24));
+      if (diff > 0) {
+        fineAmount = diff * (loan.fineRateAtLoan || db.fineRate);
+        loan.fineAmount = fineAmount;
+        loan.paymentStatus = 'pending';
+      } else {
+        loan.paymentStatus = 'paid';
+      }
+    }
+
+    if (student) {
+      const returnSms = `📚 The Reading Room Library: "${book?.title || 'Book'}" returned by ${student.name} on ${returnDate} at ${returnTime}.${fineAmount > 0 ? ` Overdue fine: ₹${fineAmount}. Please settle via UPI QR in student portal.` : ' Returned on time with zero late fine. Thank you!'}`;
+      db.smsLogs = db.smsLogs || [];
+      db.smsLogs.unshift({
+        id: db.nextSmsId++,
+        type: 'return_receipt',
+        to: student.phone || '+91 98765 43210',
+        studentName: student.name,
+        bookTitle: book?.title || 'Book',
+        message: returnSms,
+        status: 'delivered',
+        timestamp: now.toISOString()
+      });
+    }
+
+    db.activityLog.unshift({ time: 'Just now', text: `Returned "${book ? book.title : 'Book'}" on ${returnDate} at ${returnTime}${fineAmount > 0 ? ` (Fine: ₹${fineAmount})` : ''}` });
+    saveMockDB(db);
+    return { success: true, loan, fineAmount, paymentStatus: fineAmount > 0 ? 'pending' : 'paid', loanId: loan?.id };
+  }
+
+  // 9. SMS Logs
+  if (cleanPath === 'api/sms-logs') {
+    return db.smsLogs || [];
+  }
+
+  // 10. Send Custom SMS
+  if (cleanPath === 'api/send-sms' && method === 'POST') {
+    const sms = {
+      id: db.nextSmsId++,
+      type: body.type || 'custom_alert',
+      to: body.to,
+      studentName: body.studentName || 'Student',
+      bookTitle: body.bookTitle || 'Notice',
+      message: body.message,
+      status: 'delivered',
+      timestamp: new Date().toISOString()
+    };
+    db.smsLogs = db.smsLogs || [];
+    db.smsLogs.unshift(sms);
+    saveMockDB(db);
+    return { success: true, message: `SMS sent to ${body.to}`, sms };
+  }
+
+  // 9. Payment Config
+  if (cleanPath === 'api/payment-config') {
+    if (method === 'GET') return db.paymentConfig;
+    if (method === 'POST') {
+      db.paymentConfig = Object.assign(db.paymentConfig, body);
+      saveMockDB(db);
+      return { success: true, config: db.paymentConfig };
+    }
+  }
+
+  // 10. Payments
+  if (cleanPath === 'api/payments') {
+    if (method === 'GET') return db.paymentRecords;
+    if (method === 'POST') {
+      const payment = {
+        id: db.nextPaymentId++,
+        receiptNumber: 'REC-' + Date.now().toString().slice(-6),
+        loanId: body.loanId,
+        studentId: body.studentId,
+        amount: body.amount,
+        txnId: body.txnId || 'UPI-' + Date.now().toString().slice(-8),
+        proofImage: body.proofImage,
+        timestamp: new Date().toISOString(),
+        paymentMethod: 'UPI QR'
+      };
+      db.paymentRecords.unshift(payment);
+      if (body.loanId) {
+        const loan = db.loanRecords.find(l => l.id === Number(body.loanId));
+        if (loan) loan.paymentStatus = 'paid';
+      }
+      db.activityLog.unshift({ time: 'Just now', text: `UPI fine payment of ₹${body.amount} verified for Receipt #${payment.receiptNumber}` });
+      saveMockDB(db);
+      return { success: true, receipt: payment, message: `Payment of ₹${payment.amount} recorded successfully.` };
+    }
+  }
+
+  // 11. Email settings & logs
+  if (cleanPath === 'api/email-settings') {
+    if (method === 'GET') return db.emailSettings;
+    if (method === 'POST') {
+      db.emailSettings = Object.assign(db.emailSettings, body);
+      saveMockDB(db);
+      return { success: true, message: 'Settings saved' };
+    }
+  }
+  if (cleanPath === 'api/email-logs') return db.emailLogs;
+  if (cleanPath === 'api/create-test-inbox') {
+    const acc = { user: 'inbox_' + Math.random().toString(36).substring(7) + '@ethereal.email' };
+    db.emailSettings.user = acc.user;
+    db.emailSettings.mode = 'ethereal';
+    saveMockDB(db);
+    return { success: true, account: acc };
+  }
+  if (cleanPath === 'api/send-2day-alerts' || cleanPath === 'api/test-email' || cleanPath === 'api/send-custom-email') {
+    const log = {
+      id: db.emailLogs.length + 1,
+      timestamp: new Date().toISOString(),
+      type: cleanPath === 'api/send-2day-alerts' ? '2-Day Return Reminder' : 'Custom Email',
+      recipient: body.to || 'student@gmail.com',
+      subject: body.subject || 'Library Notice: The Reading Room',
+      status: 'delivered',
+      previewUrl: 'https://ethereal.email/message/' + Date.now()
+    };
+    db.emailLogs.unshift(log);
+    saveMockDB(db);
+    return { success: true, message: 'Email sent successfully!', detail: log, sentCount: 1 };
+  }
+
+  // 12. Scan lookup
+  if (cleanPath.startsWith('api/scan-lookup')) {
+    const code = (new URL('http://dummy/' + path)).searchParams.get('code') || '';
+    const book = db.books.find(b => b.id.toString() === code || b.call.toLowerCase() === code.toLowerCase() || b.title.toLowerCase().includes(code.toLowerCase()));
+    if (book) {
+      const loan = db.loanRecords.find(l => l.bookId === book.id && !l.returned);
+      return { success: true, type: 'book', data: { book, loan } };
+    }
+    const student = db.students.find(s => s.id.toString() === code || s.username.toLowerCase() === code.toLowerCase() || s.email.toLowerCase() === code.toLowerCase());
+    if (student) {
+      const studentLoans = db.loanRecords.filter(l => l.studentId === student.id && !l.returned);
+      return { success: true, type: 'student', data: { student, loansCount: studentLoans.length } };
+    }
+    if (code.toLowerCase().startsWith('upi://')) {
+      return { success: true, type: 'upi', data: { upiId: 'librarypay@upi', amount: 10, note: 'Fine Payment' } };
+    }
+    return { success: false, message: 'Code not recognized' };
+  }
+
+  return { success: true };
+}
+
+// API helper with automatic static-fallback
+async function api(path, options = {}) {
+  try {
+    const response = await fetch(path, options);
+    if (!response.ok) throw new Error('HTTP ' + response.status);
+    const contentType = response.headers.get('content-type') || '';
+    if (!contentType.includes('application/json')) {
+      const text = await response.text();
+      try { return JSON.parse(text); } catch (e) { throw new Error('Not JSON'); }
+    }
+    return await response.json();
+  } catch (error) {
+    // Transparently fallback to Mock Store
+    return handleMockApi(path, options);
+  }
+}
+
+function escapeHtml(value) {
+  return String(value || '').replace(/[&<>"]+/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[ch]);
+}
+
+function fmtDate(value) {
+  if (!value) return '';
+  const date = new Date(value);
+  return date.toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' });
+}
+
+function daysFromNow(days) {
+  const now = new Date();
+  now.setDate(now.getDate() + days);
+  return now.toISOString();
+}
+
+function isOverdue(book) {
+  if (book.status !== 'out' || !book.due) return false;
+  return new Date(book.due) < new Date();
+}
+
+function daysOverdue(book) {
+  if (!book.due) return 0;
+  const due = new Date(book.due);
+  const diff = Math.ceil((new Date() - due) / (1000 * 60 * 60 * 24));
+  return diff > 0 ? diff : 0;
+}
+
+function studentName(id) {
+  const student = students.find(s => s.id === id);
+  return student ? student.name : 'Unknown';
+}
+
+function playStamp(text) {
+  stampFlash.textContent = text;
+  stampFlash.classList.add('play');
+  setTimeout(() => stampFlash.classList.remove('play'), 900);
+}
+
+function showModal(modal) {
+  if (modal) modal.classList.add('show');
+}
+function hideModal(modal) {
+  if (modal) modal.classList.remove('show');
+}
+
+// ----------------------------------------------------
+// AUTHENTICATION & APP SHELL
+// ----------------------------------------------------
+
+function setRole(role) {
+  currentRole = role;
+  loginRoleBtn.classList.toggle('active', role === 'admin');
+  studentRoleBtn.classList.toggle('active', role === 'student');
+  document.getElementById('loginHint').innerHTML = role === 'admin'
+    ? 'Demo admin login — username: <b>admin</b> · password: <b>admin123</b>'
+    : 'Demo student login — email: <b>student@gmail.com</b> · password: <b>student123</b>';
+  loginUser.placeholder = role === 'student' ? 'e.g. student@gmail.com' : 'e.g. admin';
+}
+
+async function login() {
+  const username = loginUser.value.trim();
+  const password = loginPass.value.trim();
+  if (!username || !password) {
+    loginError.textContent = 'Enter both username/email and password.';
+    return;
+  }
+  const loginBtn = document.getElementById('loginBtn');
+  loginBtn.disabled = true;
+  loginError.textContent = '';
+  try {
+    const result = await api(API_BASE + 'login', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ username, password, role: currentRole })
+    });
+    if (!result || !result.success) {
+      loginError.textContent = result?.message || 'Login failed. Please check your credentials.';
+      return;
+    }
+    currentUser = result.user;
+    await enterApp();
+  } catch (err) {
+    loginError.textContent = 'Unable to connect to backend server.';
+  } finally {
+    loginBtn.disabled = false;
+  }
+}
+
+async function enterApp() {
+  document.getElementById('view-login').classList.add('hidden');
+  document.getElementById('app-shell').classList.remove('hidden');
+  document.getElementById('userName').textContent = currentUser.name;
+  document.getElementById('roleBadge').textContent = currentUser.role === 'admin' ? 'Admin' : 'Student';
+  
+  // Show / Hide admin only buttons
+  addBookBtn.classList.toggle('hidden', currentUser.role !== 'admin');
+  openMailHubTopBtn.classList.toggle('hidden', currentUser.role !== 'admin');
+  openPaymentSettingsBtn.classList.toggle('hidden', currentUser.role !== 'admin');
+
+  buildNav();
+  await refreshAllData();
+
+  if (currentUser.role === 'admin') {
+    showView('admin-dashboard');
+  } else {
+    showView('student-dashboard');
+  }
+}
+
+function buildNav() {
+  const items = currentUser.role === 'admin' ? [
+    {key:'admin-dashboard', label:'Dashboard'},
+    {key:'mail-hub', label:'📧 Mail Hub'},
+    {key:'catalog', label:'Catalog'},
+    {key:'issue', label:'Issue Book'},
+    {key:'return', label:'Return Book'},
+    {key:'students', label:'Students'}
+  ] : [
+    {key:'student-dashboard', label:'Dashboard & Fines'},
+    {key:'catalog', label:'Catalog'}
+  ];
+  navTabs.innerHTML = items.map(i => `<button class="nav-tab" data-view="${i.key}">${i.label}</button>`).join('');
+  navTabs.querySelectorAll('.nav-tab').forEach(btn => btn.addEventListener('click', () => showView(btn.dataset.view)));
+}
+
+function showView(name) {
+  currentView = name;
+  views.forEach(v => v.classList.add('hidden'));
+  const target = document.getElementById(`view-${name}`);
+  if (target) target.classList.remove('hidden');
+  document.querySelectorAll('.nav-tab').forEach(b => b.classList.toggle('active', b.dataset.view === name));
+
+  if (name === 'admin-dashboard') renderAdminDashboard();
+  if (name === 'student-dashboard') renderStudentDashboard();
+  if (name === 'mail-hub') renderMailHub();
+  if (name === 'catalog') renderCatalog();
+  if (name === 'issue') renderIssueForm();
+  if (name === 'return') renderReturnTable();
+  if (name === 'students') filterStudentsTable();
+}
+
+async function refreshAllData() {
+  const [bookData, studentData, activityData, fineData, loansData, payConfigData, paymentsData, emailLogsData, smsLogsData] = await Promise.all([
+    api(API_BASE + 'books'),
+    api(API_BASE + 'students'),
+    api(API_BASE + 'activity'),
+    api(API_BASE + 'fine-rate'),
+    api(API_BASE + 'loans'),
+    api(API_BASE + 'api/payment-config'),
+    api(API_BASE + 'api/payments'),
+    api(API_BASE + 'api/email-logs'),
+    api(API_BASE + 'api/sms-logs')
+  ]);
+
+  books = Array.isArray(bookData) ? bookData : [];
+  students = Array.isArray(studentData) ? studentData : [];
+  activityLog = Array.isArray(activityData) ? activityData : [];
+  fineRate = fineData?.fineRate ?? fineRate;
+  loanRecords = Array.isArray(loansData) ? loansData : [];
+  if (payConfigData) paymentConfig = Object.assign(paymentConfig, payConfigData);
+  paymentRecords = Array.isArray(paymentsData) ? paymentsData : [];
+  emailLogs = Array.isArray(emailLogsData) ? emailLogsData : [];
+  smsLogs = Array.isArray(smsLogsData) ? smsLogsData : [];
+
+  if (fineRateInput) fineRateInput.value = fineRate;
+  if (smsUnreadBadge) smsUnreadBadge.textContent = smsLogs.length;
+  populateGenres();
+  populateComposerStudents();
+  populateSmsComposerStudents();
+}
+
+// ----------------------------------------------------
+// PAYMENT QR & SCANNER ONLY (PAYMENT MODAL)
+// ----------------------------------------------------
+
+const tabPayShowQr = document.getElementById('tabPayShowQr');
+const tabPayScanner = document.getElementById('tabPayScanner');
+const payTabShowQrContent = document.getElementById('payTabShowQrContent');
+const payTabScannerContent = document.getElementById('payTabScannerContent');
+
+tabPayShowQr?.addEventListener('click', () => {
+  tabPayShowQr.classList.add('active');
+  tabPayScanner.classList.remove('active');
+  payTabShowQrContent.classList.remove('hidden');
+  payTabScannerContent.classList.add('hidden');
+  stopPaymentCamera();
+});
+
+tabPayScanner?.addEventListener('click', () => {
+  tabPayScanner.classList.add('active');
+  tabPayShowQr.classList.remove('active');
+  payTabScannerContent.classList.remove('hidden');
+  payTabShowQrContent.classList.add('hidden');
+});
+
+function openPaymentModal(loanId, studentId, amount, bookTitle) {
+  const fineAmt = Number(amount) || 10;
+  activePaymentLoan = { loanId, studentId, amount: fineAmt, bookTitle };
+
+  document.getElementById('qrFineAmount').textContent = `₹${fineAmt}`;
+  document.getElementById('qrFineDescription').textContent = bookTitle
+    ? `Late fine for "${bookTitle}" (${Math.ceil(fineAmt/fineRate)} days @ ₹${fineRate}/day)`
+    : `Total outstanding library fine (${Math.ceil(fineAmt/fineRate)} days @ ₹${fineRate}/day)`;
+
+  document.getElementById('displayUpiId').textContent = paymentConfig.upiId || 'librarypay@upi';
+  document.getElementById('payTxnId').value = '';
+  document.getElementById('payProofFile').value = '';
+  document.getElementById('payProofPreview').classList.add('hidden');
+  document.getElementById('payProofPreview').src = '';
+  document.getElementById('payScanStatusMessage').innerHTML = '';
+
+  // Default to Show QR tab
+  tabPayShowQr.click();
+
+  const qrImg = document.getElementById('dynamicQrImage');
+  if (paymentConfig.qrCodeImage) {
+    qrImg.src = paymentConfig.qrCodeImage;
+  } else {
+    const cleanTitle = (bookTitle || 'Fine_Settlement').replace(/[^a-zA-Z0-9]/g, '_');
+    const upiUri = `upi://pay?pa=${encodeURIComponent(paymentConfig.upiId)}&pn=${encodeURIComponent(paymentConfig.payeeName)}&am=${fineAmt}&cu=INR&tn=${encodeURIComponent('Library_Fine_' + cleanTitle)}`;
+    qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(upiUri)}`;
+  }
+
+  showModal(paymentModal);
+}
+
+function openStudentGeneralPayment(totalOutstanding) {
+  openPaymentModal(null, currentUser?.id, totalOutstanding, 'Library Outstanding Fine');
+}
+
+window.openPaymentModal = openPaymentModal;
+window.openStudentGeneralPayment = openStudentGeneralPayment;
+
+// Payment Camera Scanner
+async function startPaymentCamera() {
+  if (isPayCamRunning) return;
+  const placeholderEl = document.getElementById('payCamPlaceholder');
+  const startBtn = document.getElementById('btnStartPayCam');
+  const stopBtn = document.getElementById('btnStopPayCam');
+
+  if (typeof Html5Qrcode === 'undefined') {
+    alert('Camera scanning library loading... Use the Screenshot Upload below.');
+    return;
+  }
+
+  try {
+    placeholderEl.style.display = 'none';
+    payQrScanner = new Html5Qrcode("payScannerReader");
+    await payQrScanner.start(
+      { facingMode: "environment" },
+      { fps: 10, qrbox: { width: 180, height: 180 } },
+      (decodedText) => {
+        handlePaymentScanSuccess(decodedText);
+      },
+      () => {}
+    );
+    isPayCamRunning = true;
+    startBtn.style.display = 'none';
+    stopBtn.style.display = 'inline-flex';
+  } catch (err) {
+    console.error('Camera start error:', err);
+    placeholderEl.style.display = 'block';
+    placeholderEl.innerHTML = `
+      <div style="font-size:24px; color:var(--overdue);">⚠️</div>
+      <div style="color:var(--overdue); font-size:12px; font-weight:600;">Camera Unavailable</div>
+      <div style="font-size:11px; color:#666;">Use the screenshot upload below to scan payment QR.</div>
+    `;
+    isPayCamRunning = false;
+  }
+}
+
+async function stopPaymentCamera() {
+  if (!isPayCamRunning || !payQrScanner) return;
+  try {
+    await payQrScanner.stop();
+    payQrScanner.clear();
+  } catch (e) {
+    console.warn(e);
+  }
+  isPayCamRunning = false;
+  document.getElementById('payCamPlaceholder').style.display = 'block';
+  document.getElementById('btnStartPayCam').style.display = 'inline-flex';
+  document.getElementById('btnStopPayCam').style.display = 'none';
+}
+
+document.getElementById('btnStartPayCam')?.addEventListener('click', startPaymentCamera);
+document.getElementById('btnStopPayCam')?.addEventListener('click', stopPaymentCamera);
+
+// Payment Screenshot Upload Scanner
+const payScanDropZone = document.getElementById('payScanDropZone');
+const payScanFileInput = document.getElementById('payScanFileInput');
+payScanDropZone?.addEventListener('click', () => payScanFileInput.click());
+payScanFileInput?.addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  // Also auto-attach file to payment proof preview
+  const reader = new FileReader();
+  reader.onload = (evt) => {
+    const preview = document.getElementById('payProofPreview');
+    preview.src = evt.target.result;
+    preview.classList.remove('hidden');
+  };
+  reader.readAsDataURL(file);
+
+  if (typeof Html5Qrcode !== 'undefined') {
+    try {
+      const qrScanner = new Html5Qrcode("payScannerReader");
+      const decodedText = await qrScanner.scanFile(file, true);
+      handlePaymentScanSuccess(decodedText);
+    } catch (err) {
+      document.getElementById('payScanStatusMessage').innerHTML = `<span style="color:#555;">Uploaded image attached. (No embedded QR detected, please type transaction ID).</span>`;
+    }
+  }
+});
+
+function handlePaymentScanSuccess(decodedText) {
+  playStamp('SCANNED');
+  stopPaymentCamera();
+  const statusEl = document.getElementById('payScanStatusMessage');
+
+  // Parse UPI string or raw ref
+  let refId = '';
+  if (decodedText.includes('pa=')) {
+    try {
+      const url = new URL(decodedText.startsWith('upi:') ? decodedText.replace('upi://pay', 'http://upi.org') : `http://upi.org?${decodedText}`);
+      const pa = url.searchParams.get('pa') || '';
+      const am = url.searchParams.get('am') || '';
+      const tn = url.searchParams.get('tn') || '';
+      refId = `UPI-${Date.now().toString().slice(-6)}`;
+      statusEl.innerHTML = `<span style="color:#059669; font-weight:600;">✅ UPI QR Code Scanned! Payee: ${escapeHtml(pa)} ${am ? `• ₹${am}` : ''}</span>`;
+    } catch (e) {
+      refId = decodedText.slice(0, 20);
+      statusEl.innerHTML = `<span style="color:#059669; font-weight:600;">✅ Payment QR Scanned: ${escapeHtml(decodedText.slice(0, 25))}</span>`;
+    }
+  } else {
+    refId = decodedText.trim();
+    statusEl.innerHTML = `<span style="color:#059669; font-weight:600;">✅ Scanned Receipt / Ref: <b>${escapeHtml(refId)}</b></span>`;
+  }
+
+  document.getElementById('payTxnId').value = refId;
+}
+
+// Preview manual proof upload
+document.getElementById('payProofFile')?.addEventListener('change', function(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(evt) {
+    const preview = document.getElementById('payProofPreview');
+    preview.src = evt.target.result;
+    preview.classList.remove('hidden');
+  };
+  reader.readAsDataURL(file);
+});
+
+// Confirm Fine Payment
+document.getElementById('confirmPaymentBtn')?.addEventListener('click', async () => {
+  if (!activePaymentLoan) return;
+
+  const txnId = document.getElementById('payTxnId').value.trim() || `UPI-${Date.now().toString().slice(-6)}`;
+  const proofPreview = document.getElementById('payProofPreview');
+  const screenshot = (!proofPreview.classList.contains('hidden') && proofPreview.src) ? proofPreview.src : null;
+
+  const confirmBtn = document.getElementById('confirmPaymentBtn');
+  confirmBtn.disabled = true;
+  confirmBtn.textContent = 'Processing Payment…';
+
+  try {
+    const response = await api(API_BASE + 'api/pay-fine', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        loanId: activePaymentLoan.loanId,
+        studentId: activePaymentLoan.studentId || currentUser?.id,
+        amount: activePaymentLoan.amount,
+        transactionId: txnId,
+        screenshot
+      })
+    });
+
+    if (response && response.success) {
+      stopPaymentCamera();
+      hideModal(paymentModal);
+      playStamp('PAID');
+      await refreshAllData();
+
+      // Show printable receipt modal
+      showPaymentReceipt(response.payment);
+
+      if (currentUser?.role === 'admin') {
+        renderAdminDashboard();
+      } else {
+        renderStudentDashboard();
+      }
+    } else {
+      alert(response?.message || 'Payment processing failed.');
+    }
+  } catch (err) {
+    alert('Error recording fine payment.');
+  } finally {
+    confirmBtn.disabled = false;
+    confirmBtn.textContent = 'Confirm & Clear Fine';
+  }
+});
+
+document.getElementById('cancelPaymentBtn')?.addEventListener('click', () => {
+  stopPaymentCamera();
+  hideModal(paymentModal);
+});
+
+function showPaymentReceipt(payment) {
+  const content = document.getElementById('receiptContent');
+  content.innerHTML = `
+    <div class="receipt-header">
+      <h4>The Reading Room Library</h4>
+      <div style="font-size:11px; color:#666; text-transform:uppercase; letter-spacing:1px;">Official Fine Payment Receipt</div>
+    </div>
+    <div class="receipt-row"><span>Receipt No:</span><b>RCP-${payment.id.toString().padStart(5, '0')}</b></div>
+    <div class="receipt-row"><span>Borrower:</span><b>${escapeHtml(payment.studentName)}</b></div>
+    <div class="receipt-row"><span>Book / Reason:</span><span>${escapeHtml(payment.bookTitle)}</span></div>
+    <div class="receipt-row"><span>Transaction / UTR:</span><span style="font-family:monospace;">${escapeHtml(payment.transactionId)}</span></div>
+    <div class="receipt-row"><span>Payment Date:</span><span>${new Date(payment.createdAt).toLocaleString('en-GB')}</span></div>
+    <div class="receipt-row"><span>Payment Method:</span><span>UPI QR Code & Scanner</span></div>
+    <div class="receipt-row total"><span>Amount Settled:</span><span style="color:#059669;">₹${payment.amount} (PAID)</span></div>
+  `;
+  showModal(receiptModal);
+}
+
+document.getElementById('closeReceiptBtn')?.addEventListener('click', () => hideModal(receiptModal));
+document.getElementById('printReceiptBtn')?.addEventListener('click', () => window.print());
+
+// Copy UPI ID button
+document.getElementById('copyUpiBtn')?.addEventListener('click', () => {
+  const upiId = document.getElementById('displayUpiId').textContent;
+  navigator.clipboard.writeText(upiId).then(() => alert('UPI ID copied to clipboard: ' + upiId));
+});
+
+// View Payment Screenshot Proof Modal
+function viewPaymentProof(paymentId) {
+  const p = paymentRecords.find(item => item.id === Number(paymentId));
+  if (!p || !p.screenshot) {
+    alert('No screenshot proof uploaded for this transaction.');
+    return;
+  }
+  document.getElementById('proofFullImg').src = p.screenshot;
+  document.getElementById('proofDetails').innerHTML = `
+    <b>Student:</b> ${escapeHtml(p.studentName)} • <b>Amount:</b> ₹${p.amount}<br>
+    <b>Transaction ID:</b> ${escapeHtml(p.transactionId)} • <b>Date:</b> ${new Date(p.createdAt).toLocaleString('en-GB')}
+  `;
+  showModal(proofViewModal);
+}
+
+window.viewPaymentProof = viewPaymentProof;
+document.getElementById('closeProofViewBtn')?.addEventListener('click', () => hideModal(proofViewModal));
+
+// ----------------------------------------------------
+// MAIL & NOTIFICATIONS HUB
+// ----------------------------------------------------
+
+openMailHubTopBtn?.addEventListener('click', () => showView('mail-hub'));
+
+async function renderMailHub() {
+  const settings = await api(API_BASE + 'api/email-settings');
+  if (settings) {
+    document.getElementById('hubEmailService').value = settings.service || 'gmail';
+    document.getElementById('hubEmailUser').value = settings.user || '';
+    document.getElementById('hubEmailFrom').value = settings.from || '';
+    if (document.getElementById('hubSmtpHost')) document.getElementById('hubSmtpHost').value = settings.host || 'smtp.gmail.com';
+    if (document.getElementById('hubSmtpPort')) document.getElementById('hubSmtpPort').value = settings.port || 465;
+
+    // Highlight active provider card
+    document.querySelectorAll('.provider-card').forEach(c => c.style.borderColor = 'var(--card-shadow)');
+    if (settings.mode === 'ethereal') {
+      document.getElementById('providerEtherealCard').style.borderColor = 'var(--brass)';
+      document.getElementById('etherealStatus').innerHTML = `Active Inbox: <b>${escapeHtml(settings.user)}</b>`;
+    } else if (settings.service === 'gmail') {
+      document.getElementById('providerGmailCard').style.borderColor = 'var(--brass)';
+    } else {
+      document.getElementById('providerCustomCard').style.borderColor = 'var(--brass)';
+    }
+  }
+
+  populateComposerStudents();
+  renderEmailLogs();
+}
+
+function populateComposerStudents() {
+  const sel = document.getElementById('hubComposerStudentSel');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">-- Choose registered student --</option>' + students.map(s => 
+    `<option value="${escapeHtml(s.email)}">${escapeHtml(s.name)} (${escapeHtml(s.email)})</option>`
+  ).join('');
+
+  sel.addEventListener('change', () => {
+    if (sel.value) document.getElementById('hubComposerEmail').value = sel.value;
+  });
+}
+
+// 1. Generate 1-Click Instant Test Inbox
+document.getElementById('btnCreateEtherealInbox')?.addEventListener('click', async () => {
+  const btn = document.getElementById('btnCreateEtherealInbox');
+  btn.disabled = true;
+  btn.textContent = '⏳ Creating Live Test Inbox…';
+
+  try {
+    const res = await api(API_BASE + 'api/create-test-inbox', { method: 'POST' });
+    if (res && res.success) {
+      alert(`🎉 1-Click Instant Test Inbox Created!\n\nUser: ${res.account.user}\n\nAll outgoing emails (2-day alerts, overdue notices, payment receipts) will now generate live browser preview links in the logs below!`);
+      await renderMailHub();
+    } else {
+      alert('Failed: ' + (res?.message || 'Error'));
+    }
+  } catch (e) {
+    alert('Error connecting to backend.');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Generate Instant Test Inbox';
+  }
+});
+
+// 2. Quick Preset Selection Cards
+document.getElementById('btnSelectGmailMode')?.addEventListener('click', () => {
+  document.getElementById('hubEmailService').value = 'gmail';
+  document.getElementById('hubCustomFields').style.display = 'none';
+  document.getElementById('hubEmailUser').placeholder = 'yourlibrary@gmail.com';
+  document.getElementById('hubEmailUser').focus();
+});
+
+document.getElementById('btnSelectCustomMode')?.addEventListener('click', () => {
+  document.getElementById('hubEmailService').value = 'custom';
+  document.getElementById('hubCustomFields').style.display = 'block';
+  document.getElementById('hubSmtpHost').focus();
+});
+
+document.getElementById('hubEmailService')?.addEventListener('change', (e) => {
+  document.getElementById('hubCustomFields').style.display = (e.target.value === 'custom' || e.target.value === 'outlook' || e.target.value === 'yahoo') ? 'block' : 'none';
+  if (e.target.value === 'outlook') {
+    document.getElementById('hubSmtpHost').value = 'smtp.office365.com';
+    document.getElementById('hubSmtpPort').value = 587;
+  } else if (e.target.value === 'yahoo') {
+    document.getElementById('hubSmtpHost').value = 'smtp.mail.yahoo.com';
+    document.getElementById('hubSmtpPort').value = 465;
+  }
+});
+
+// 3. Save Hub Settings
+document.getElementById('btnSaveHubSettings')?.addEventListener('click', async () => {
+  const service = document.getElementById('hubEmailService').value;
+  const user = document.getElementById('hubEmailUser').value.trim();
+  const pass = document.getElementById('hubEmailPass').value.trim();
+  const from = document.getElementById('hubEmailFrom').value.trim();
+  const host = document.getElementById('hubSmtpHost')?.value.trim() || 'smtp.gmail.com';
+  const port = document.getElementById('hubSmtpPort')?.value || 465;
+
+  const result = await api(API_BASE + 'api/email-settings', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ service, user, pass, from, host, port, mode: service })
+  });
+
+  if (result && result.success) {
+    alert('✅ Email settings saved successfully!');
+    await renderMailHub();
+  } else {
+    alert('Failed to save settings: ' + (result?.message || 'Error'));
+  }
+});
+
+// 4. Live Test Email Dispatch
+document.getElementById('btnHubSendTest')?.addEventListener('click', async () => {
+  const to = document.getElementById('hubTestEmailInput').value.trim();
+  const statusEl = document.getElementById('hubTestEmailStatus');
+  if (!to) {
+    statusEl.innerHTML = '<span style="color:var(--overdue);">Please enter an email address.</span>';
+    return;
+  }
+
+  statusEl.innerHTML = '<span style="color:#555;">⏳ Sending test email…</span>';
+  const result = await api(API_BASE + 'api/test-email', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ to })
+  });
+
+  if (result && result.success) {
+    const previewBtn = result.detail?.previewUrl
+      ? `<br><a href="${result.detail.previewUrl}" target="_blank" class="action-btn pay-btn" style="margin-top:6px; display:inline-block;">🔗 Open Live Email Web Preview</a>`
+      : '';
+    statusEl.innerHTML = `<span style="color:#059669; font-weight:600;">✅ ${result.message}</span>${previewBtn}`;
+    await refreshAllData();
+    renderEmailLogs();
+  } else {
+    statusEl.innerHTML = `<span style="color:var(--overdue); font-weight:600;">❌ ${result?.message || 'Delivery failed'}</span>`;
+  }
+});
+
+// 5. Send Direct Custom Email
+document.getElementById('btnHubSendCustomEmail')?.addEventListener('click', async () => {
+  const to = document.getElementById('hubComposerEmail').value.trim();
+  const subject = document.getElementById('hubComposerSubject').value.trim();
+  const message = document.getElementById('hubComposerMessage').value.trim();
+
+  if (!to || !subject || !message) {
+    alert('Please fill out student email, subject, and message content.');
+    return;
+  }
+
+  const btn = document.getElementById('btnHubSendCustomEmail');
+  btn.disabled = true;
+  btn.textContent = '⏳ Dispatching Email…';
+
+  try {
+    const result = await api(API_BASE + 'api/send-custom-email', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ to, subject, message, heading: 'Notice from Circulation Desk' })
+    });
+
+    if (result && result.success) {
+      alert(`✅ Custom email successfully dispatched to ${to}!`);
+      document.getElementById('hubComposerSubject').value = '';
+      document.getElementById('hubComposerMessage').value = '';
+      await refreshAllData();
+      renderEmailLogs();
+    } else {
+      alert('Failed: ' + (result?.message || 'Check SMTP configuration'));
+    }
+  } catch (e) {
+    alert('Error connecting to backend.');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '📤 Send Email to Student';
+  }
+});
+
+// 6. Sent Email Logs with Clickable Preview Links
+function renderEmailLogs() {
+  const container = document.getElementById('hubEmailLogsContainer');
+  if (!container) return;
+
+  if (!emailLogs || emailLogs.length === 0) {
+    container.innerHTML = '<div style="color:#7a7a6e; font-family:\'IBM Plex Mono\',monospace; font-size:12.5px; padding:10px 0;">No emails dispatched yet in this session.</div>';
+    return;
+  }
+
+  container.innerHTML = `
+    <table class="lib-table">
+      <thead><tr><th>Time</th><th>Recipient</th><th>Subject</th><th>Status</th><th>Preview / Info</th></tr></thead>
+      <tbody>
+        ${emailLogs.slice(0, 15).map(log => {
+          const statusPill = log.status === 'success'
+            ? '<span class="pill paid">✓ Sent</span>'
+            : (log.status === 'simulated' ? '<span class="pill pending">Simulated</span>' : '<span class="pill overdue">Failed</span>');
+          
+          const previewBtn = log.previewUrl
+            ? `<a href="${log.previewUrl}" target="_blank" class="action-btn pay-btn" style="font-size:10px; padding:4px 8px;">🔗 View Email Webpage</a>`
+            : (log.error ? `<span style="color:var(--overdue); font-size:11px;">${escapeHtml(log.error.slice(0, 40))}…</span>` : '<span style="color:#888; font-size:11px;">Direct SMTP</span>');
+
+          return `
+            <tr>
+              <td><span style="font-family:'IBM Plex Mono',monospace; font-size:12px;">${new Date(log.timestamp).toLocaleTimeString('en-GB')}</span></td>
+              <td><b>${escapeHtml(log.to)}</b></td>
+              <td>${escapeHtml(log.subject)}</td>
+              <td>${statusPill}</td>
+              <td>${previewBtn}</td>
+            </tr>
+          `;
+        }).join('')}
+      </tbody>
+    </table>
+  `;
+}
+
+document.getElementById('btnRefreshEmailLogs')?.addEventListener('click', async () => {
+  const logs = await api(API_BASE + 'api/email-logs');
+  emailLogs = Array.isArray(logs) ? logs : [];
+  renderEmailLogs();
+});
+
+// ----------------------------------------------------
+// ADMIN DASHBOARD RENDERING
+// ----------------------------------------------------
+
+async function renderAdminDashboard() {
+  const stats = await api(API_BASE + 'admin-stats');
+  document.getElementById('d-total').textContent = books.length;
+  document.getElementById('d-students').textContent = students.length;
+  document.getElementById('d-issued').textContent = books.filter(b => b.status === 'out').length;
+  document.getElementById('d-overdue').textContent = stats?.overdueCount ?? books.filter(isOverdue).length;
+  document.getElementById('d-fines').textContent = `₹${stats?.totalOutstanding ?? 0}`;
+
+  // 1. Render 2-Day Return Alert List
+  const dueIn2Container = document.getElementById('dueIn2List');
+  const dueIn2List = stats?.dueIn2 || [];
+  if (dueIn2List.length === 0) {
+    dueIn2Container.innerHTML = '<div style="color:#7a7a6e; font-family:\'IBM Plex Mono\',monospace; font-size:12.5px; padding:10px 0;">No books are due in 2 days right now.</div>';
+  } else {
+    dueIn2Container.innerHTML = dueIn2List.map(item => {
+      const statusBadge = item.reminderSent
+        ? '<span class="pill alert-sent">✓ Alert Sent</span>'
+        : '<span class="pill pending">⏰ 2 Days Left</span>';
+      return `
+        <div class="mini-row" style="padding:10px 0;">
+          <div>
+            <span class="t">${escapeHtml(item.title)}</span>
+            <div style="font-family:'IBM Plex Mono',monospace; font-size:12px; color:#555; margin-top:2px;">
+              Borrower: <b>${escapeHtml(item.studentName)}</b> (${escapeHtml(item.studentEmail)}) • Due: ${fmtDate(item.due)}
+            </div>
+          </div>
+          <div style="display:flex; align-items:center; gap:8px;">
+            ${statusBadge}
+            <button class="action-btn" onclick="sendIndividualReminder(${item.loanId})">📧 Send Alert</button>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  // 2. Render Overdue Right Now List with ₹10/day fine breakdown
+  const overdueContainer = document.getElementById('overdueList');
+  const overdueLoans = (stats?.overdueLoans || []).filter(l => l.paymentStatus !== 'paid');
+  if (overdueLoans.length === 0) {
+    overdueContainer.innerHTML = '<div style="color:#7a7a6e; font-family:\'IBM Plex Mono\',monospace; font-size:12.5px; padding:10px 0;">Great! No books are currently overdue.</div>';
+  } else {
+    overdueContainer.innerHTML = overdueLoans.map(item => {
+      return `
+        <div class="mini-row" style="padding:12px 0;">
+          <div>
+            <span class="t">${escapeHtml(item.title)}</span>
+            <div style="font-family:'IBM Plex Mono',monospace; font-size:12px; color:#555; margin-top:2px;">
+              Borrower: <b>${escapeHtml(item.studentName)}</b> • Due: ${fmtDate(item.due)} • <span style="color:var(--overdue); font-weight:600;">${item.daysLate} day(s) overdue</span>
+            </div>
+          </div>
+          <div style="display:flex; align-items:center; gap:10px;">
+            <div style="text-align:right;">
+              <div class="fine-badge" style="font-size:15px;">₹${item.fine}</div>
+              <div style="font-family:'IBM Plex Mono',monospace; font-size:10px; color:#777;">₹${fineRate}/day</div>
+            </div>
+            <button class="action-btn pay-btn" onclick="openPaymentModal(${item.loanId}, ${item.studentId}, ${item.fine}, '${escapeHtml(item.title)}')">💳 Settle Fine</button>
+            <button class="action-btn" onclick="doReturn(${item.bookId})">Return</button>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  // 3. Render Activity List
+  document.getElementById('activityList').innerHTML = activityLog.map(a => 
+    `<div class="activity-row"><span class="time" style="color:var(--brass-dark); font-weight:600; margin-right:8px;">[${escapeHtml(a.time)}]</span>${escapeHtml(a.text)}</div>`
+  ).join('');
+
+  // 4. Render Recent Checkouts (SMS-confirmed issue_alert logs)
+  renderRecentCheckouts();
+
+  // 5. Render Recent Fine Payments List
+  renderPaymentsList();
+  renderStudentSearchResults();
+}
+
+// ----------------------------------------------------
+// RECENT CHECKOUTS TABLE (Admin Dashboard)
+// ----------------------------------------------------
+
+function renderRecentCheckouts() {
+  const container = document.getElementById('recentCheckoutsList');
+  if (!container) return;
+
+  // Pull checkout records from loanRecords (all active + recent returned)
+  const allLoans = loanRecords.slice().sort((a, b) => new Date(b.issuedTimestamp || b.issued) - new Date(a.issuedTimestamp || a.issued));
+  
+  // Also merge SMS issue_alert logs for phone number & SMS status
+  const issueLogs = smsLogs.filter(s => s.type === 'issue_alert');
+
+  if (allLoans.length === 0) {
+    container.innerHTML = '<div style="color:#7a7a6e; font-family:\'IBM Plex Mono\',monospace; font-size:12.5px; padding:10px 0;">No book checkouts recorded yet. Issue a book to see checkout details here.</div>';
+    return;
+  }
+
+  container.innerHTML = `
+    <table class="lib-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Student Name</th>
+          <th>Phone</th>
+          <th>Book Title</th>
+          <th>Checkout Date</th>
+          <th>Checkout Time</th>
+          <th>Due Date</th>
+          <th>Status</th>
+          <th>SMS Sent</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${allLoans.slice(0, 20).map((loan, idx) => {
+          const student = students.find(s => s.id === loan.studentId);
+          const phone = loan.studentPhone || (student ? student.phone : '') || '—';
+          const smsLog = issueLogs.find(s =>
+            (s.studentName && loan.studentName && s.studentName === loan.studentName) ||
+            (s.bookTitle && loan.title && s.bookTitle === loan.title && s.to && phone && s.to.replace(/\s+/g,'') === phone.replace(/\s+/g,''))
+          );
+          const smsSent = smsLog
+            ? `<span class="pill paid" style="font-size:11px;">✅ SMS Delivered<br><span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#555;">${escapeHtml(smsLog.to)}</span></span>`
+            : '<span class="pill pending" style="font-size:11px;">📤 Logged</span>';
+
+          const statusBadge = loan.returned
+            ? `<span class="pill paid">✓ Returned</span>`
+            : `<span class="pill" style="background:#e8f5e9;color:#1b5e20;border-color:#a5d6a7;">📖 Issued</span>`;
+
+          const checkoutDate = loan.issuedDate || (loan.issued ? new Date(loan.issued).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—');
+          const checkoutTime = loan.issuedTime || '—';
+          const dueDate = loan.dueText || (loan.due ? new Date(loan.due).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—');
+
+          return `
+            <tr>
+              <td style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#888;">${idx + 1}</td>
+              <td>
+                <b>${escapeHtml(loan.studentName || (student ? student.name : 'Unknown'))}</b>
+                ${student ? `<div style="font-size:11px;color:#888;font-family:'IBM Plex Mono',monospace;">${escapeHtml(student.email || '')}</div>` : ''}
+              </td>
+              <td style="font-family:'IBM Plex Mono',monospace;font-size:12px;">${escapeHtml(phone)}</td>
+              <td>
+                <b>${escapeHtml(loan.title)}</b>
+                ${loan.author ? `<div style="font-size:11px;color:#888;">by ${escapeHtml(loan.author)}</div>` : ''}
+              </td>
+              <td style="font-family:'IBM Plex Mono',monospace;font-size:12.5px;color:#152b21;font-weight:600;">
+                📅 ${escapeHtml(checkoutDate)}
+              </td>
+              <td style="font-family:'IBM Plex Mono',monospace;font-size:12.5px;color:#b8935a;font-weight:600;">
+                🕐 ${escapeHtml(checkoutTime)}
+              </td>
+              <td style="font-family:'IBM Plex Mono',monospace;font-size:12px;">${escapeHtml(dueDate)}</td>
+              <td>${statusBadge}</td>
+              <td>${smsSent}</td>
+            </tr>
+          `;
+        }).join('')}
+      </tbody>
+    </table>
+  `;
+}
+
+
+
+function renderPaymentsList() {
+  const container = document.getElementById('paymentsList');
+  if (!container) return;
+  if (!paymentRecords || paymentRecords.length === 0) {
+    container.innerHTML = '<div style="color:#7a7a6e; font-family:\'IBM Plex Mono\',monospace; font-size:12.5px; padding:10px 0;">No UPI fine payments recorded yet.</div>';
+    return;
+  }
+  container.innerHTML = `
+    <table class="lib-table">
+      <thead><tr><th>Date</th><th>Student</th><th>Book / Description</th><th>Amount</th><th>UPI Transaction ID</th><th>Proof</th><th>Status</th></tr></thead>
+      <tbody>
+        ${paymentRecords.slice(0, 10).map(p => {
+          const proofBtn = p.screenshot
+            ? `<button class="action-btn" onclick="viewPaymentProof(${p.id})">🖼️ View Proof</button>`
+            : '<span style="color:#888; font-size:12px;">None</span>';
+          return `
+            <tr>
+              <td>${new Date(p.createdAt || p.date).toLocaleDateString('en-GB')}</td>
+              <td><b>${escapeHtml(p.studentName)}</b></td>
+              <td>${escapeHtml(p.bookTitle)}</td>
+              <td><b style="color:#059669;">₹${p.amount}</b></td>
+              <td><span style="font-family:'IBM Plex Mono',monospace; font-size:12px;">${escapeHtml(p.transactionId)}</span></td>
+              <td>${proofBtn}</td>
+              <td><span class="pill paid">✓ Verified</span></td>
+            </tr>
+          `;
+        }).join('')}
+      </tbody>
+    </table>
+  `;
+}
+
+// ----------------------------------------------------
+// STUDENT DASHBOARD & BORROWED BOOKS
+// ----------------------------------------------------
+
+async function renderStudentDashboard() {
+  if (!currentUser || currentUser.role !== 'student') return;
+  document.getElementById('studentWelcome').textContent = 'Welcome back, ' + currentUser.name;
+
+  const result = await api(API_BASE + 'students/' + currentUser.id);
+  if (!result || !result.success) return;
+
+  const currentLoans = result.currentLoans || [];
+  const history = result.history || [];
+  const totalOutstanding = result.outstanding || 0;
+  const overdueLoans = currentLoans.filter(l => (l.isOverdue || l.daysRemaining < 0) && l.paymentStatus !== 'paid');
+  const dueIn2Loans = currentLoans.filter(l => l.daysRemaining === 2);
+
+  document.getElementById('s-borrowed').textContent = currentLoans.length;
+  document.getElementById('s-overdue').textContent = overdueLoans.length;
+  document.getElementById('s-fine').textContent = `₹${totalOutstanding}`;
+  document.getElementById('s-total').textContent = books.length;
+
+  // 1. Outstanding Fine Alert Banner
+  const fineBanner = document.getElementById('studentFineBanner');
+  if (totalOutstanding > 0) {
+    fineBanner.className = 'fine-alert-banner';
+    fineBanner.innerHTML = `
+      <div class="fine-msg">
+        <div>⚠️ <strong>Outstanding Library Fine: ₹${totalOutstanding}</strong></div>
+        <div class="fine-sub">Fines accrue at <b>₹${fineRate}/day</b> for books returned after the due date. Please pay via UPI QR code.</div>
+      </div>
+      <button class="action-btn pay-btn" style="padding:10px 18px; font-size:12px;" onclick="openStudentGeneralPayment(${totalOutstanding})">💳 Pay Fine via UPI QR (₹${totalOutstanding})</button>
+    `;
+  } else {
+    fineBanner.className = 'hidden';
+    fineBanner.innerHTML = '';
+  }
+
+  // 2. 2-Day Return Reminder Banner
+  const due2Banner = document.getElementById('studentDue2Banner');
+  if (dueIn2Loans.length > 0) {
+    due2Banner.className = 'reminder-alert-banner';
+    due2Banner.innerHTML = `
+      <div class="msg">
+        ⏰ <b>Reminder:</b> You have <b>${dueIn2Loans.length} book(s)</b> due in <b>2 days</b> ("${escapeHtml(dueIn2Loans[0].title)}"). Return on time to avoid a ₹${fineRate}/day late fine!
+      </div>
+    `;
+  } else {
+    due2Banner.className = 'hidden';
+    due2Banner.innerHTML = '';
+  }
+
+  // 3. My Borrowed Books List (with 3D Digital Book Reader)
+  const myBooksContainer = document.getElementById('myBooksList');
+  if (currentLoans.length === 0) {
+    myBooksContainer.innerHTML = '<div style="color:#7a7a6e; font-family:\'IBM Plex Mono\',monospace; font-size:13px; padding:16px 0;">You have no books currently checked out. Visit the Catalog to explore available titles.</div>';
+  } else {
+    myBooksContainer.innerHTML = currentLoans.map(loan => {
+      const isLate = loan.daysRemaining < 0;
+      const isPaid = loan.paymentStatus === 'paid';
+      const overdueDays = isLate ? Math.abs(loan.daysRemaining) : 0;
+      const accruedFine = (isLate && !isPaid) ? (overdueDays * fineRate) : (loan.fineAmount || 0);
+      
+      const statusPill = isPaid
+        ? '<span class="pill paid">✓ Fine Paid</span>'
+        : (isLate
+            ? `<span class="pill overdue">⚠️ ${overdueDays}d Overdue</span>`
+            : (loan.daysRemaining <= 2
+                ? `<span class="pill pending">⏰ Due in ${loan.daysRemaining} days</span>`
+                : `<span class="pill avail">Due in ${loan.daysRemaining} days</span>`));
+
+      const fineSection = (isLate && !isPaid)
+        ? `
+          <div style="display:flex; align-items:center; gap:10px;">
+            <div style="text-align:right;">
+              <div class="fine-badge" style="font-size:14px;">Fine: ₹${accruedFine}</div>
+              <div style="font-family:'IBM Plex Mono',monospace; font-size:10px; color:#777;">(₹${fineRate}/day)</div>
+            </div>
+            <button class="action-btn pay-btn" onclick="openPaymentModal(${loan.id}, ${currentUser.id}, ${accruedFine}, '${escapeHtml(loan.title)}')">💳 Pay Fine</button>
+          </div>
+        `
+        : '';
+
+      return `
+        <div class="mini-row" style="padding:14px 0;">
+          <div>
+            <div class="t" style="font-size:16px;">${escapeHtml(loan.title)}</div>
+            <div style="font-family:'IBM Plex Mono',monospace; font-size:12px; color:#555; margin-top:4px;">
+              Issued: ${fmtDate(loan.issued)} • <b>Due Back: ${fmtDate(loan.due)}</b>
+            </div>
+            <button class="card-read-btn" style="margin-top:8px;" onclick="openBookReader(${loan.bookId})">📖 Read Digital Book</button>
+          </div>
+          <div style="display:flex; align-items:center; gap:12px;">
+            ${statusPill}
+            ${fineSection}
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  // 4. Student SMS Notifications & Issue Receipts Feed
+  renderStudentSmsList();
+
+  // 5. Student Borrowing & Payment History
+  const historyTbody = document.getElementById('studentHistoryBody');
+  if (history.length === 0) {
+    historyTbody.innerHTML = '<tr><td colspan="8" class="empty">No borrowing history yet.</td></tr>';
+  } else {
+    historyTbody.innerHTML = history.map(item => {
+      const isPaid = item.paymentStatus === 'paid' || item.fineAmount === 0;
+      const statusPill = isPaid
+        ? '<span class="pill paid">Paid / Cleared</span>'
+        : '<span class="pill overdue">Fine Pending</span>';
+      
+      const payAction = (!isPaid && item.fineAmount > 0)
+        ? `<button class="action-btn pay-btn" onclick="openPaymentModal(${item.id}, ${currentUser.id}, ${item.fineAmount}, '${escapeHtml(item.title)}')">💳 Pay ₹${item.fineAmount}</button>`
+        : '<span style="color:#059669; font-size:12px; font-weight:600;">✓ Settled</span>';
+
+      return `
+        <tr>
+          <td>
+            <b>${escapeHtml(item.title)}</b>
+            <div style="margin-top:2px;"><button class="card-read-btn" style="font-size:10px; padding:3px 7px;" onclick="openBookReader(${item.bookId})">📖 Read</button></div>
+          </td>
+          <td>${fmtDate(item.issued)}</td>
+          <td>${fmtDate(item.due)}</td>
+          <td>${fmtDate(item.returned)}</td>
+          <td>${item.lateDays > 0 ? `<span style="color:var(--overdue); font-weight:600;">${item.lateDays}d late</span>` : 'On time'}</td>
+          <td><b>₹${item.fineAmount || 0}</b></td>
+          <td>${statusPill}</td>
+          <td>${payAction}</td>
+        </tr>
+      `;
+    }).join('');
+  }
+}
+
+// ----------------------------------------------------
+// 2-DAY REMINDERS & EMAIL ALERT ACTIONS
+// ----------------------------------------------------
+
+async function triggerAllReminders() {
+  triggerRemindersBtn.disabled = true;
+  triggerRemindersBtn.textContent = '⏳ Sending Reminders…';
+  try {
+    const res = await api(API_BASE + 'send-reminders', { method: 'POST' });
+    if (res && res.success) {
+      alert(`✅ Reminder Pass Complete!\n${res.message}`);
+      await refreshAllData();
+      renderAdminDashboard();
+    } else {
+      alert('Reminder pass failed: ' + (res?.message || 'Unknown error'));
+    }
+  } catch (e) {
+    alert('Error connecting to backend.');
+  } finally {
+    triggerRemindersBtn.disabled = false;
+    triggerRemindersBtn.textContent = '🚀 Send 2-Day Alerts to All';
+  }
+}
+
+async function sendIndividualReminder(loanId) {
+  const result = await api(API_BASE + 'send-reminder', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ loanId })
+  });
+  if (result && result.success) {
+    alert('✅ ' + result.message);
+    await refreshAllData();
+    renderAdminDashboard();
+  } else {
+    alert('❌ Failed to dispatch email: ' + (result?.message || 'Check SMTP settings.'));
+  }
+}
+
+window.sendIndividualReminder = sendIndividualReminder;
+
+// ----------------------------------------------------
+// ADMIN UPI QR CONFIGURATION MODAL
+// ----------------------------------------------------
+
+openPaymentSettingsBtn?.addEventListener('click', () => {
+  document.getElementById('cfgUpiId').value = paymentConfig.upiId || '';
+  document.getElementById('cfgPayeeName').value = paymentConfig.payeeName || '';
+  const prev = document.getElementById('cfgQrPreview');
+  if (paymentConfig.qrCodeImage) {
+    prev.src = paymentConfig.qrCodeImage;
+    prev.classList.remove('hidden');
+  } else {
+    prev.classList.add('hidden');
+  }
+  showModal(paymentSettingsModal);
+});
+
+document.getElementById('cfgQrImageFile')?.addEventListener('change', function(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(evt) {
+    const preview = document.getElementById('cfgQrPreview');
+    preview.src = evt.target.result;
+    preview.classList.remove('hidden');
+  };
+  reader.readAsDataURL(file);
+});
+
+document.getElementById('savePaymentSettingsBtn')?.addEventListener('click', async () => {
+  const upiId = document.getElementById('cfgUpiId').value.trim();
+  const payeeName = document.getElementById('cfgPayeeName').value.trim();
+  const qrPreview = document.getElementById('cfgQrPreview');
+  const qrCodeImage = (!qrPreview.classList.contains('hidden') && qrPreview.src) ? qrPreview.src : null;
+
+  const result = await api(API_BASE + 'api/payment-config', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ upiId, payeeName, qrCodeImage })
+  });
+
+  if (result && result.success) {
+    paymentConfig = result.paymentConfig;
+    alert('✅ UPI & QR Settings saved!');
+    hideModal(paymentSettingsModal);
+  } else {
+    alert('Failed to save settings.');
+  }
+});
+
+document.getElementById('closePaymentSettingsBtn')?.addEventListener('click', () => hideModal(paymentSettingsModal));
+
+// ----------------------------------------------------
+// CATALOG, ISSUE & RETURN
+// ----------------------------------------------------
+
+function populateGenres() {
+  const genres = [...new Set(books.map(b => b.genre))].sort();
+  const sel = document.getElementById('genreFilter');
+  if (sel) {
+    sel.innerHTML = '<option value="">All genres</option>' + genres.map(g => `<option value="${escapeHtml(g)}">${escapeHtml(g)}</option>`).join('');
+  }
+}
+
+function renderCatalog() {
+  const search = document.getElementById('searchInput').value.trim().toLowerCase();
+  const genre = document.getElementById('genreFilter').value;
+  const grid = document.getElementById('grid');
+  const empty = document.getElementById('emptyState');
+
+  const filtered = books.filter(b => {
+    const matchesSearch = !search || b.title.toLowerCase().includes(search) || b.author.toLowerCase().includes(search) || b.call.toLowerCase().includes(search);
+    const matchesGenre = !genre || b.genre === genre;
+    return matchesSearch && matchesGenre;
+  });
+
+  grid.innerHTML = '';
+  if (filtered.length === 0) {
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+  filtered.forEach(b => grid.appendChild(renderCard(b)));
+}
+
+function renderCard(book) {
+  const card = document.createElement('div');
+  card.className = 'card';
+  const overdue = isOverdue(book);
+  const statusClass = book.status === 'available' ? 'avail' : (overdue ? 'overdue' : 'out');
+  const statusLabel = book.status === 'available' ? 'On shelf' : (overdue ? `Overdue (${daysOverdue(book)}d)` : 'Checked out');
+  const dueNote = book.status === 'out' ? `<div class="due-note">${overdue ? 'was due' : 'due back'} ${fmtDate(book.due)} · ${escapeHtml(studentName(book.studentId))}</div>` : '';
+  const actions = currentUser?.role === 'admin'
+    ? `<div class="card-actions">${book.status === 'available' ? `<button class="action-btn" data-action="goissue" data-id="${book.id}">Issue</button>` : `<button class="action-btn" data-action="return" data-id="${book.id}">Return</button>`}<button class="action-btn danger" data-action="remove" data-id="${book.id}">Remove</button></div>`
+    : '';
+
+  card.innerHTML = `<div class="card-inner"><div class="call-number">${escapeHtml(book.call)}</div><div class="card-title">${escapeHtml(book.title)}</div><div class="card-author">${escapeHtml(book.author)}</div><div class="card-genre">${escapeHtml(book.genre)}</div><div class="status-row"><span class="status-dot"><span class="dot ${statusClass}"></span><span class="status-text ${statusClass}">${statusLabel}</span></span></div>${dueNote}${actions}</div>`;
+  return card;
+}
+
+document.getElementById('grid')?.addEventListener('click', async (event) => {
+  const btn = event.target.closest('button[data-action]');
+  if (!btn) return;
+  const action = btn.dataset.action;
+  const id = Number(btn.dataset.id);
+  if (action === 'readbook') {
+    openBookReader(id);
+  }
+  if (action === 'goissue') {
+    showView('issue');
+    document.getElementById('issueBook').value = id;
+    updateIssueSummary();
+  }
+  if (action === 'return') {
+    await doReturn(id);
+    await refreshAllData();
+    renderCatalog();
+  }
+  if (action === 'remove') {
+    await deleteBook(id);
+    await refreshAllData();
+    renderCatalog();
+  }
+});
+
+function renderIssueForm(preselectStudentId = null) {
+  const studentSel = document.getElementById('issueStudent');
+  studentSel.innerHTML = students.map(s => `<option value="${s.id}">${escapeHtml(s.name)} (${escapeHtml(s.email)}) • ${escapeHtml(s.phone || 'No phone')}</option>`).join('');
+  if (preselectStudentId) studentSel.value = preselectStudentId;
+
+  const bookSel = document.getElementById('issueBook');
+  const search = document.getElementById('issueBookSearch')?.value.trim().toLowerCase() || '';
+  let availableBooks = books.filter(b => b.status === 'available');
+  if (search) {
+    availableBooks = availableBooks.filter(b =>
+      b.title.toLowerCase().includes(search) || b.author.toLowerCase().includes(search) || String(b.id).includes(search)
+    );
+  }
+  bookSel.innerHTML = availableBooks.length
+    ? availableBooks.map(b => `<option value="${b.id}">${escapeHtml(b.title)} — ${escapeHtml(b.author)} (ID:${b.id})</option>`).join('')
+    : '<option value="">No titles currently available</option>';
+  document.getElementById('issueConfirmBtn').disabled = availableBooks.length === 0;
+  updateIssueSummary();
+}
+
+[document.getElementById('issueStudent'), document.getElementById('issueBook'), document.getElementById('issueDays')].forEach(el => el?.addEventListener('change', updateIssueSummary));
+
+function updateIssueSummary() {
+  const box = document.getElementById('issueSummary');
+  const studentId = Number(document.getElementById('issueStudent').value);
+  const bookId = Number(document.getElementById('issueBook').value);
+  const days = Number(document.getElementById('issueDays').value);
+  const student = students.find(s => s.id === studentId);
+  const book = books.find(b => b.id === bookId);
+  if (!student || !book) {
+    box.classList.remove('show');
+    return;
+  }
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+  const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+  const dueDateStr = fmtDate(daysFromNow(days));
+  const studentPhone = student.phone || '+91 98765 43210';
+
+  box.classList.add('show');
+  box.innerHTML = `
+    <div style="margin-bottom:8px;">
+      <b>Borrower:</b> ${escapeHtml(student.name)} (${escapeHtml(student.email)})<br>
+      <b>Book Title:</b> "${escapeHtml(book.title)}" by ${escapeHtml(book.author)}<br>
+      <b>Checkout Timestamp:</b> <span style="color:var(--forest-dark); font-weight:bold;">${dateStr} at ${timeStr}</span><br>
+      <b>Due Date:</b> <span style="color:var(--brass-dark); font-weight:bold;">${dueDateStr}</span> (${days} days) • <b>Late Fine Rate:</b> ₹${fineRate}/day
+    </div>
+    <div style="background:#ffffff; border:1px dashed var(--brass); border-radius:4px; padding:10px; margin-top:8px; font-size:12.5px;">
+      <div style="font-weight:700; color:var(--forest-dark); margin-bottom:4px; display:flex; align-items:center; gap:6px;">
+        <span>📱 Live SMS Alert Dispatch to: <b>${escapeHtml(studentPhone)}</b></span>
+      </div>
+      <div style="font-style:italic; color:#333; line-height:1.5;">
+        "📚 The Reading Room Library Alert: Hello ${escapeHtml(student.name)}, you have checked out '${escapeHtml(book.title)}' by ${escapeHtml(book.author)} on ${dateStr} at ${timeStr}. Due Date: ${dueDateStr}. Late fine: ₹${fineRate}/day. Happy Reading!"
+      </div>
+    </div>
+  `;
+}
+
+document.getElementById('issueConfirmBtn')?.addEventListener('click', async () => {
+  const studentId = Number(document.getElementById('issueStudent').value);
+  const bookId = Number(document.getElementById('issueBook').value);
+  const days = Number(document.getElementById('issueDays').value);
+  const result = await api(API_BASE + 'issue', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ studentId, bookId, days })
+  });
+  if (result && result.success) {
+    playStamp('ISSUED');
+    if (result.sms) {
+      showSmsPopup(result.sms);
+    }
+    await refreshAllData();
+    showView('admin-dashboard');
+  }
+});
+
+async function doReturn(bookId) {
+  const book = books.find(b => b.id === bookId);
+  if (!book || book.status !== 'out') return;
+
+  // Check if book is overdue — if yes, confirm with user BEFORE calling API
+  const overdue = isOverdue(book);
+  const daysLate = daysOverdue(book);
+  const estimatedFine = daysLate * fineRate;
+
+  if (overdue && estimatedFine > 0) {
+    const confirmed = confirm(
+      `⚠️ This book is ${daysLate} day(s) overdue.\n` +
+      `📖 "${book.title}"\n` +
+      `💰 Estimated Fine: ₹${estimatedFine} (₹${fineRate}/day)\n\n` +
+      `Do you want to proceed with the return?\n` +
+      `(Click OK to return the book, Cancel to go back)`
+    );
+    if (!confirmed) return; // User clicked Cancel — do NOT return the book
+  }
+
+  const result = await api(API_BASE + 'return', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ bookId })
+  });
+  if (result && result.success) {
+    playStamp('RETURNED');
+    if (result.fineAmount > 0) {
+      openPaymentModal(result.loanId, null, result.fineAmount, book ? book.title : 'Returned Book Fine');
+    }
+    await refreshAllData();
+    renderReturnTable();
+  }
+}
+
+
+window.doReturn = doReturn;
+
+async function deleteBook(bookId) {
+  if (!confirm('Remove this book from catalog?')) return;
+  const result = await api(API_BASE + 'books/' + bookId, { method: 'DELETE' });
+  if (result && result.success) {
+    await refreshAllData();
+  }
+}
+
+function renderReturnTable() {
+  const issuedBooks = books.filter(b => b.status === 'out');
+  const tbody = document.getElementById('returnTableBody');
+  const empty = document.getElementById('returnEmpty');
+  if (!issuedBooks.length) {
+    tbody.innerHTML = '';
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+  tbody.innerHTML = issuedBooks.map(b => {
+    const overdue = isOverdue(b);
+    const daysLate = daysOverdue(b);
+    const currentFine = daysLate * fineRate;
+    const pillClass = overdue ? 'overdue' : 'out';
+    const pillLabel = overdue ? `${daysLate}d overdue` : 'On loan';
+
+    return `
+      <tr>
+        <td><b>${escapeHtml(b.title)}</b></td>
+        <td>${escapeHtml(studentName(b.studentId))}</td>
+        <td>${fmtDate(b.issued)}</td>
+        <td>${fmtDate(b.due)}</td>
+        <td>${daysLate > 0 ? `<b style="color:var(--overdue);">${daysLate} days</b>` : 'On time'}</td>
+        <td><b class="${currentFine > 0 ? 'fine-badge' : ''}">₹${currentFine}</b></td>
+        <td><span class="pill ${pillClass}">${pillLabel}</span></td>
+        <td>
+          <div style="display:flex; gap:6px;">
+            <button class="action-btn" onclick="doReturn(${b.id})">Return</button>
+            ${currentFine > 0 ? `<button class="action-btn pay-btn" onclick="openPaymentModal(null, ${b.studentId}, ${currentFine}, '${escapeHtml(b.title)}')">💳 Pay Fine</button>` : ''}
+          </div>
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+// ----------------------------------------------------
+// STUDENTS MANAGEMENT
+// ----------------------------------------------------
+
+function renderStudentsTable(filteredStudents = null) {
+  const list = filteredStudents || students;
+  const tbody = document.getElementById('studentsTableBody');
+  tbody.innerHTML = list.map(s => {
+    const count = books.filter(b => b.status === 'out' && b.studentId === s.id).length;
+    const phone = s.phone || '—';
+    return `
+      <tr>
+        <td>
+          <b>${escapeHtml(s.name)}</b>
+          <div style="font-family:'IBM Plex Mono',monospace; font-size:12px; color:#555;">${escapeHtml(s.email)} • ID: ${s.id}</div>
+        </td>
+        <td>
+          <span style="font-family:'IBM Plex Mono',monospace; font-size:13px; font-weight:600; color:#1b5e20;" id="phone_display_${s.id}">${escapeHtml(phone)}</span>
+        </td>
+        <td>${escapeHtml(s.username)}</td>
+        <td><b>${count}</b> title(s)</td>
+        <td><span class="fine-badge" id="student_fine_${s.id}">...</span></td>
+        <td style="display:flex; gap:6px; flex-wrap:wrap;">
+          <button class="action-btn" onclick="loadStudentProfile(${s.id})">View Account</button>
+          <button class="action-btn" onclick="openEditStudentModal(${s.id})" style="background:#fff8e1; border-color:#b8935a; color:#8d6e3f;">✏️ Edit</button>
+        </td>
+      </tr>
+    `;
+  }).join('');
+
+  if (studentCount) studentCount.textContent = `Showing ${list.length} student${list.length === 1 ? '' : 's'}`;
+
+  // Fetch individual student fines
+  list.forEach(async (s) => {
+    const res = await api(API_BASE + 'students/' + s.id);
+    const el = document.getElementById(`student_fine_${s.id}`);
+    if (el && res) {
+      el.textContent = `₹${res.outstanding || 0}`;
+    }
+  });
+}
+
+
+function filterStudentsTable() {
+  const query = (studentListSearchInput?.value || '').trim().toLowerCase();
+  if (!query) {
+    renderStudentsTable();
+    return;
+  }
+  const filtered = students.filter(s =>
+    [s.name, s.username, s.email, String(s.id)].some(f => f.toLowerCase().includes(query))
+  );
+  renderStudentsTable(filtered);
+}
+
+async function loadStudentProfile(studentId) {
+  const result = await api(API_BASE + 'students/' + studentId);
+  if (!result?.success) {
+    alert('Unable to load student profile.');
+    return;
+  }
+  currentProfileId = studentId;
+  const s = result.student;
+  profileName.textContent = s.name;
+  profileId.textContent = s.id;
+  profileEmail.textContent = s.email;
+  profileOutstanding.textContent = `₹${result.outstanding || 0}`;
+
+  profileCurrentBody.innerHTML = result.currentLoans.length
+    ? result.currentLoans.map(loan => {
+        const isLate = loan.daysRemaining < 0;
+        return `
+          <tr>
+            <td><b>${escapeHtml(loan.title)}</b></td>
+            <td>${fmtDate(loan.issued)}</td>
+            <td>${fmtDate(loan.due)}</td>
+            <td>${isLate ? `<span style="color:var(--overdue); font-weight:600;">${Math.abs(loan.daysRemaining)}d overdue</span>` : `${loan.daysRemaining}d left`}</td>
+            <td><b class="${loan.fineAmount > 0 ? 'fine-badge' : ''}">₹${loan.fineAmount}</b></td>
+            <td>${loan.fineAmount > 0 ? `<button class="action-btn pay-btn" onclick="openPaymentModal(${loan.id}, ${s.id}, ${loan.fineAmount}, '${escapeHtml(loan.title)}')">💳 Pay</button>` : ''}</td>
+          </tr>
+        `;
+      }).join('')
+    : '<tr><td colspan="6" class="empty">No active loans.</td></tr>';
+
+  profileHistoryBody.innerHTML = result.history.length
+    ? result.history.map(loan => {
+        const isPaid = loan.paymentStatus === 'paid';
+        return `
+          <tr>
+            <td><b>${escapeHtml(loan.title)}</b></td>
+            <td>${fmtDate(loan.returned)}</td>
+            <td>${loan.lateDays > 0 ? `${loan.lateDays}d late` : 'On time'}</td>
+            <td>₹${loan.fineAmount}</td>
+            <td><span class="pill ${isPaid ? 'paid' : 'overdue'}">${isPaid ? 'Paid' : 'Pending'}</span></td>
+            <td>${(!isPaid && loan.fineAmount > 0) ? `<button class="action-btn pay-btn" onclick="openPaymentModal(${loan.id}, ${s.id}, ${loan.fineAmount}, '${escapeHtml(loan.title)}')">💳 Pay</button>` : ''}</td>
+          </tr>
+        `;
+      }).join('')
+    : '<tr><td colspan="6" class="empty">No borrowing history yet.</td></tr>';
+
+  showView('student-profile');
+}
+
+window.loadStudentProfile = loadStudentProfile;
+
+profileBackBtn?.addEventListener('click', () => showView('students'));
+profileIssueBtn?.addEventListener('click', () => {
+  renderIssueForm(currentProfileId);
+  showView('issue');
+});
+profilePayFineBtn?.addEventListener('click', async () => {
+  if (!currentProfileId) return;
+  const res = await api(API_BASE + 'students/' + currentProfileId);
+  if (res && res.outstanding > 0) {
+    openPaymentModal(null, currentProfileId, res.outstanding, 'Student Fine Clearance');
+  } else {
+    alert('This student has no outstanding fines.');
+  }
+});
+
+// Search in Admin
+function renderStudentSearchResults() {
+  if (!studentSearchInput) return;
+  const term = studentSearchInput.value.trim().toLowerCase();
+  if (!term) {
+    studentSearchResults.innerHTML = '<div class="empty" style="padding:0; margin:0;">Type name, student ID, or email to find a borrower.</div>';
+    return;
+  }
+  const results = students.filter(s =>
+    s.name.toLowerCase().includes(term) || s.email.toLowerCase().includes(term) || String(s.id).includes(term)
+  );
+  studentSearchResults.innerHTML = results.length
+    ? results.map(s => `<button class="student-result-btn" style="padding:8px 12px; font-family:'IBM Plex Mono',monospace; width:100%; text-align:left; cursor:pointer; margin-bottom:4px;" onclick="loadStudentProfile(${s.id})">🔍 ${escapeHtml(s.name)} · ${escapeHtml(s.email)} · ID: ${s.id}</button>`).join('')
+    : '<div class="empty" style="padding:0; margin:0;">No student found.</div>';
+}
+
+studentSearchInput?.addEventListener('input', renderStudentSearchResults);
+studentListSearchInput?.addEventListener('input', filterStudentsTable);
+
+// ----------------------------------------------------
+// ADD BOOK & REGISTER STUDENT
+// ----------------------------------------------------
+
+addBookBtn?.addEventListener('click', () => {
+  document.getElementById('fTitle').value = '';
+  document.getElementById('fAuthor').value = '';
+  document.getElementById('fGenre').value = '';
+  const assignSel = document.getElementById('assignStudentSelect');
+  if (assignSel) assignSel.innerHTML = students.map(s => `<option value="${s.id}">${escapeHtml(s.name)}</option>`).join('');
+  showModal(addModal);
+});
+
+document.getElementById('cancelAdd')?.addEventListener('click', () => hideModal(addModal));
+document.getElementById('confirmAdd')?.addEventListener('click', async () => {
+  const title = document.getElementById('fTitle').value.trim();
+  const author = document.getElementById('fAuthor').value.trim();
+  const genre = document.getElementById('fGenre').value.trim() || 'General';
+  if (!title || !author) {
+    alert('Enter title and author.');
+    return;
+  }
+  const res = await api(API_BASE + 'books', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ title, author, genre })
+  });
+  if (res && res.success) {
+    hideModal(addModal);
+    await refreshAllData();
+    renderCatalog();
+  }
+});
+
+function showSignupModal() {
+  setRole('student');
+  document.getElementById('sName').value = '';
+  document.getElementById('sUsername').value = '';
+  document.getElementById('sPassword').value = '';
+  document.getElementById('sEmail').value = '';
+  if (document.getElementById('sPhone')) document.getElementById('sPhone').value = '';
+  showModal(addStudentModal);
+}
+window.showSignupModal = showSignupModal;
+
+document.getElementById('addStudentBtn')?.addEventListener('click', () => {
+  document.getElementById('sName').value = '';
+  document.getElementById('sUsername').value = '';
+  document.getElementById('sPassword').value = '';
+  document.getElementById('sEmail').value = '';
+  if (document.getElementById('sPhone')) document.getElementById('sPhone').value = '';
+  showModal(addStudentModal);
+});
+
+document.getElementById('cancelAddStudent')?.addEventListener('click', () => hideModal(addStudentModal));
+document.getElementById('confirmAddStudent')?.addEventListener('click', async () => {
+  const name = document.getElementById('sName').value.trim();
+  const username = document.getElementById('sUsername').value.trim();
+  const password = document.getElementById('sPassword').value.trim();
+  const email = document.getElementById('sEmail').value.trim();
+  const phone = document.getElementById('sPhone')?.value.trim() || '+91 98765 ' + Math.floor(10000 + Math.random() * 90000);
+
+  if (!name || !username || !password || !email) {
+    alert('Please complete all required fields.');
+    return;
+  }
+  const res = await api(API_BASE + 'students', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ name, username, password, email, phone })
+  });
+  if (res && res.success) {
+    hideModal(addStudentModal);
+    await refreshAllData();
+    alert(`Student registered successfully! Welcome SMS sent to ${phone}.`);
+    if (!currentUser) {
+      loginUser.value = email;
+      loginPass.value = password;
+      await login();
+    } else {
+      renderStudentsTable();
+    }
+  } else {
+    alert(res?.message || 'Registration failed.');
+  }
+});
+
+// -------------------------------------------------------
+// EDIT STUDENT MODAL (Admin can update name, email, phone)
+// -------------------------------------------------------
+
+const editStudentModal = document.getElementById('editStudentModal');
+
+function openEditStudentModal(studentId) {
+  const student = students.find(s => s.id === studentId);
+  if (!student) return alert('Student not found.');
+  document.getElementById('editStudentId').value = studentId;
+  document.getElementById('editStudentName').value = student.name || '';
+  document.getElementById('editStudentEmail').value = student.email || '';
+  document.getElementById('editStudentPhone').value = student.phone || '';
+  showModal(editStudentModal);
+}
+window.openEditStudentModal = openEditStudentModal;
+
+document.getElementById('cancelEditStudent')?.addEventListener('click', () => hideModal(editStudentModal));
+
+document.getElementById('confirmEditStudent')?.addEventListener('click', async () => {
+  const studentId = Number(document.getElementById('editStudentId').value);
+  const name = document.getElementById('editStudentName').value.trim();
+  const email = document.getElementById('editStudentEmail').value.trim();
+  const phone = document.getElementById('editStudentPhone').value.trim();
+
+  if (!name || !email) {
+    alert('Name and email are required.');
+    return;
+  }
+  if (!phone) {
+    alert('Please enter a real mobile phone number for SMS alerts.');
+    return;
+  }
+
+  const res = await api(API_BASE + 'students/' + studentId, {
+    method: 'PUT',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ name, email, phone })
+  });
+
+  if (res && res.success) {
+    hideModal(editStudentModal);
+    await refreshAllData();
+    renderStudentsTable();
+    alert(`✅ Student details updated!\nName: ${name}\nEmail: ${email}\nPhone: ${phone}`);
+  } else {
+    alert(res?.message || 'Failed to update student.');
+  }
+});
+
+// Fine Rate Save
+saveFineRateBtn?.addEventListener('click', async () => {
+  const val = Number(fineRateInput.value);
+  if (Number.isNaN(val) || val < 0) {
+    alert('Enter a valid non-negative fine rate.');
+    return;
+  }
+  const result = await api(API_BASE + 'fine-rate', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ fineRate: val })
+  });
+  if (result?.success) {
+    fineRate = val;
+    alert(`Fine rate set to ₹${fineRate}/day`);
+    await refreshAllData();
+    renderAdminDashboard();
+  }
+});
+
+// ----------------------------------------------------
+// WEB AUDIO EFFECTS (PAGE TURNS & SMS NOTIFICATIONS)
+// ----------------------------------------------------
+
+function getAudioContext() {
+  if (!audioCtx) {
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (AudioContextClass) audioCtx = new AudioContextClass();
+  }
+  if (audioCtx && audioCtx.state === 'suspended') {
+    audioCtx.resume();
+  }
+  return audioCtx;
+}
+
+function playPageFlipSound() {
+  try {
+    const ctx = getAudioContext();
+    if (!ctx) return;
+    const bufferSize = Math.floor(ctx.sampleRate * 0.14);
+    const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (bufferSize * 0.3));
+    }
+    const noise = ctx.createBufferSource();
+    noise.buffer = buffer;
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.setValueAtTime(850, ctx.currentTime);
+    filter.frequency.exponentialRampToValueAtTime(320, ctx.currentTime + 0.14);
+    filter.Q.setValueAtTime(2.5, ctx.currentTime);
+
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(0.16, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.14);
+
+    noise.connect(filter);
+    filter.connect(gain);
+    gain.connect(ctx.destination);
+    noise.start();
+  } catch (e) {}
+}
+
+function playSmsChime() {
+  try {
+    const ctx = getAudioContext();
+    if (!ctx) return;
+    const now = ctx.currentTime;
+    
+    // Tone 1 (587.33 Hz - D5)
+    const osc1 = ctx.createOscillator();
+    const gain1 = ctx.createGain();
+    osc1.type = 'sine';
+    osc1.frequency.setValueAtTime(587.33, now);
+    gain1.gain.setValueAtTime(0.14, now);
+    gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+    osc1.connect(gain1);
+    gain1.connect(ctx.destination);
+    osc1.start(now);
+    osc1.stop(now + 0.18);
+
+    // Tone 2 (880 Hz - A5)
+    const osc2 = ctx.createOscillator();
+    const gain2 = ctx.createGain();
+    osc2.type = 'sine';
+    osc2.frequency.setValueAtTime(880, now + 0.1);
+    gain2.gain.setValueAtTime(0.18, now + 0.1);
+    gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+    osc2.connect(gain2);
+    gain2.connect(ctx.destination);
+    osc2.start(now + 0.1);
+    osc2.stop(now + 0.35);
+  } catch (e) {}
+}
+
+// ----------------------------------------------------
+// SMS TEXT ALERTS & NOTIFICATIONS HUB
+// ----------------------------------------------------
+
+openSmsHubTopBtn?.addEventListener('click', () => {
+  renderSmsHubLogs();
+  showModal(smsHubModal);
+});
+
+closeSmsHubBtn?.addEventListener('click', () => hideModal(smsHubModal));
+
+tabSmsLogsBtn?.addEventListener('click', () => {
+  tabSmsLogsBtn.classList.add('active');
+  tabSmsComposeBtn.classList.remove('active');
+  tabSmsLogsContent.classList.remove('hidden');
+  tabSmsComposeContent.classList.add('hidden');
+});
+
+tabSmsComposeBtn?.addEventListener('click', () => {
+  tabSmsComposeBtn.classList.add('active');
+  tabSmsLogsBtn.classList.remove('active');
+  tabSmsComposeContent.classList.remove('hidden');
+  tabSmsLogsContent.classList.add('hidden');
+});
+
+function populateSmsComposerStudents() {
+  if (!smsComposerStudentSel) return;
+  smsComposerStudentSel.innerHTML = '<option value="">-- Choose registered student --</option>' + students.map(s => 
+    `<option value="${s.id}" data-phone="${escapeHtml(s.phone || '')}">${escapeHtml(s.name)} • ${escapeHtml(s.phone || 'No phone')} (${escapeHtml(s.email)})</option>`
+  ).join('');
+
+  smsComposerStudentSel.addEventListener('change', () => {
+    const opt = smsComposerStudentSel.selectedOptions[0];
+    if (opt && opt.dataset.phone) {
+      smsComposerPhone.value = opt.dataset.phone;
+    }
+  });
+}
+
+function renderSmsHubLogs() {
+  if (!smsHubListContainer) return;
+  const search = (smsSearchInput?.value || '').trim().toLowerCase();
+  const typeFilter = smsTypeFilter?.value || '';
+
+  let list = Array.isArray(smsLogs) ? smsLogs : [];
+  if (typeFilter) {
+    list = list.filter(s => s.type === typeFilter);
+  }
+  if (search) {
+    list = list.filter(s =>
+      (s.studentName && s.studentName.toLowerCase().includes(search)) ||
+      (s.bookTitle && s.bookTitle.toLowerCase().includes(search)) ||
+      (s.to && s.to.toLowerCase().includes(search)) ||
+      (s.message && s.message.toLowerCase().includes(search))
+    );
+  }
+
+  if (list.length === 0) {
+    smsHubListContainer.innerHTML = '<div style="color:#7a7a6e; font-family:\'IBM Plex Mono\',monospace; font-size:12.5px; padding:16px; text-align:center;">No SMS notifications found matching your filter.</div>';
+    return;
+  }
+
+  smsHubListContainer.innerHTML = list.map(sms => {
+    const rawPhone = (sms.to || '').replace(/[^0-9]/g, '');
+    const cleanPhone = rawPhone.length === 10 ? '91' + rawPhone : rawPhone;
+    const whatsappUrl = `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(sms.message || '')}`;
+
+    return `
+      <div class="sms-item-card">
+        <div class="sms-item-top">
+          <div>
+            <span class="sms-pill-badge">${escapeHtml(sms.type.replace('_', ' ').toUpperCase())}</span>
+            <span style="font-weight:600; margin-left:6px;">${escapeHtml(sms.studentName || 'Student')}</span>
+            <span style="font-family:'IBM Plex Mono',monospace; font-size:12px; color:#666; margin-left:6px;">(${escapeHtml(sms.to)})</span>
+          </div>
+          <div style="font-family:'IBM Plex Mono',monospace; font-size:11px; color:#888;">
+            ${new Date(sms.timestamp || Date.now()).toLocaleString('en-GB', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit', hour12:true })}
+          </div>
+        </div>
+        <div class="sms-item-body">
+          ${escapeHtml(sms.message)}
+        </div>
+        <div class="sms-item-footer">
+          <span style="color:#059669; font-weight:600; font-size:11px;">✓ Delivered via SMS Gateway</span>
+          <a href="${whatsappUrl}" target="_blank" class="action-btn pay-btn" style="background:#25D366; color:#fff; border-color:#25D366; font-size:11px; padding:3px 8px;">🟢 Send via WhatsApp</a>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+smsSearchInput?.addEventListener('input', renderSmsHubLogs);
+smsTypeFilter?.addEventListener('change', renderSmsHubLogs);
+refreshSmsHubBtn?.addEventListener('click', async () => {
+  const data = await api(API_BASE + 'api/sms-logs');
+  smsLogs = Array.isArray(data) ? data : [];
+  if (smsUnreadBadge) smsUnreadBadge.textContent = smsLogs.length;
+  renderSmsHubLogs();
+});
+
+// Direct Send SMS
+btnSendCustomSms?.addEventListener('click', async () => {
+  const to = smsComposerPhone.value.trim();
+  const message = smsComposerText.value.trim();
+  const studentId = Number(smsComposerStudentSel?.value);
+  const student = students.find(s => s.id === studentId);
+
+  if (!to || !message) {
+    alert('Please enter a phone number and message content.');
+    return;
+  }
+
+  btnSendCustomSms.disabled = true;
+  btnSendCustomSms.textContent = '⏳ Dispatching SMS…';
+  smsComposerStatus.innerHTML = '<span style="color:#666;">Contacting SMS gateway…</span>';
+
+  try {
+    const res = await api(API_BASE + 'api/send-sms', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        to,
+        message,
+        studentName: student ? student.name : 'Student',
+        bookTitle: 'Notice',
+        type: 'custom_alert'
+      })
+    });
+
+    if (res && res.success) {
+      smsComposerStatus.innerHTML = `<span style="color:#059669; font-weight:600;">✅ ${res.message}</span>`;
+      smsComposerText.value = '';
+      if (res.sms) {
+        showSmsPopup(res.sms);
+      }
+      await refreshAllData();
+      renderSmsHubLogs();
+    } else {
+      smsComposerStatus.innerHTML = `<span style="color:var(--overdue); font-weight:600;">❌ ${res?.message || 'Delivery error'}</span>`;
+    }
+  } catch (e) {
+    smsComposerStatus.innerHTML = `<span style="color:var(--overdue);">Error connecting to SMS service.</span>`;
+  } finally {
+    btnSendCustomSms.disabled = false;
+    btnSendCustomSms.textContent = '📤 Dispatch SMS';
+  }
+});
+
+// Direct WhatsApp share button in composer
+btnWhatsAppShareCustom?.addEventListener('click', () => {
+  const to = smsComposerPhone.value.trim();
+  const message = smsComposerText.value.trim();
+  if (!to || !message) {
+    alert('Please provide mobile phone and message text.');
+    return;
+  }
+  const rawPhone = to.replace(/[^0-9]/g, '');
+  const cleanPhone = rawPhone.length === 10 ? '91' + rawPhone : rawPhone;
+  const url = `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(message)}`;
+  window.open(url, '_blank');
+});
+
+// Floating Smartphone SMS Popup Notification
+function showSmsPopup(sms) {
+  if (!smsPopupNotification) return;
+  playSmsChime();
+
+  smsPopupTitle.textContent = sms.type === 'issue_alert'
+    ? `📚 Book Checkout Receipt — ${sms.bookTitle}`
+    : (sms.type === 'return_receipt' ? `📗 Book Returned — ${sms.bookTitle}` : '💬 Library SMS Notification');
+
+  smsPopupMessage.textContent = sms.message;
+  smsPopupTime.textContent = sms.issuedTime
+    ? `${sms.issuedDate} at ${sms.issuedTime}`
+    : new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+
+  const rawPhone = (sms.to || '').replace(/[^0-9]/g, '');
+  const cleanPhone = rawPhone.length === 10 ? '91' + rawPhone : rawPhone;
+  smsPopupWhatsApp.href = `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(sms.message || '')}`;
+
+  smsPopupNotification.classList.remove('hidden');
+  smsPopupNotification.classList.add('slide-in');
+
+  // Auto-dismiss after 9 seconds if not clicked
+  clearTimeout(window.__smsPopupTimer);
+  window.__smsPopupTimer = setTimeout(() => {
+    smsPopupNotification.classList.add('hidden');
+  }, 9000);
+}
+
+smsPopupCloseBtn?.addEventListener('click', () => {
+  smsPopupNotification.classList.add('hidden');
+});
+
+smsPopupViewHub?.addEventListener('click', () => {
+  smsPopupNotification.classList.add('hidden');
+  renderSmsHubLogs();
+  showModal(smsHubModal);
+});
+
+// Render Student Portal SMS Feed
+function renderStudentSmsList() {
+  const container = document.getElementById('studentSmsContainer');
+  if (!container || !currentUser) return;
+
+  const mySmsList = smsLogs.filter(s =>
+    (currentUser.phone && s.to && s.to.replace(/\s+/g, '') === currentUser.phone.replace(/\s+/g, '')) ||
+    (s.studentName && s.studentName.toLowerCase() === currentUser.name.toLowerCase()) ||
+    (s.studentId && s.studentId === currentUser.id)
+  );
+
+  if (mySmsList.length === 0) {
+    container.innerHTML = '<div style="color:#7a7a6e; font-family:\'IBM Plex Mono\',monospace; font-size:12.5px; padding:12px 0;">No SMS receipts sent to your phone number yet. Whenever you borrow or return books, exact timestamp receipts will appear here.</div>';
+    return;
+  }
+
+  container.innerHTML = mySmsList.map(sms => {
+    const rawPhone = (sms.to || '').replace(/[^0-9]/g, '');
+    const cleanPhone = rawPhone.length === 10 ? '91' + rawPhone : rawPhone;
+    const whatsappUrl = `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(sms.message || '')}`;
+
+    return `
+      <div class="sms-item-card" style="margin-bottom:10px;">
+        <div class="sms-item-top">
+          <div>
+            <span class="sms-pill-badge">${escapeHtml((sms.type || 'alert').replace('_', ' ').toUpperCase())}</span>
+            <b style="margin-left:6px;">${escapeHtml(sms.bookTitle || 'Library Notice')}</b>
+          </div>
+          <span style="font-family:'IBM Plex Mono',monospace; font-size:11.5px; color:#555;">
+            ${sms.issuedDate ? `${sms.issuedDate} at ${sms.issuedTime}` : new Date(sms.timestamp).toLocaleString('en-GB')}
+          </span>
+        </div>
+        <div class="sms-item-body" style="font-size:13px; margin:6px 0;">
+          ${escapeHtml(sms.message)}
+        </div>
+        <div class="sms-item-footer">
+          <span style="color:#059669; font-size:11.5px;">✓ SMS Delivered to <b>${escapeHtml(sms.to)}</b></span>
+          <a href="${whatsappUrl}" target="_blank" class="action-btn pay-btn" style="background:#25D366; color:#fff; border-color:#25D366; font-size:10.5px; padding:2px 7px;">🟢 Share to WhatsApp</a>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+document.getElementById('refreshStudentSmsBtn')?.addEventListener('click', async () => {
+  const data = await api(API_BASE + 'api/sms-logs');
+  smsLogs = Array.isArray(data) ? data : [];
+  renderStudentSmsList();
+});
+
+// ----------------------------------------------------
+// REALISTIC 3D DUAL-PAGE FLIPBOOK DIGITAL READER
+// ----------------------------------------------------
+
+// Fallback contents for digital reader (used in offline / static hosting mode)
+function getFallbackBookContent(book) {
+  const title = book ? book.title : 'Selected Book';
+  const author = book ? book.author : 'Author';
+  const genre = book ? book.genre : 'Literature';
+  return {
+    id: book?.id || 1,
+    title,
+    author,
+    genre,
+    pagesCount: 6,
+    chapters: [
+      {
+        number: 1,
+        title: "The Opening Chamber",
+        pages: [
+          {
+            pageNumber: 1,
+            chapterTitle: "Chapter I: The Opening Chamber",
+            paragraphs: [
+              `The morning light drifted quietly through the tall archways of the library, illuminating quiet dust motes suspended in the golden air. In the world of ${title}, every word inscribed upon the parchment held a silent weight, waiting patiently for a seeker of truth to turn the page.`,
+              `"A book is not merely bound leaves of paper," ${author} wrote in the opening meditation, "but a vessel that carries the heartbeat of thought across distance and across the expanse of human history."`,
+              `As you embark upon this reading journey, let the quiet reverence of the library encompass you. Here, amidst the quiet shelter of ideas, questions find solace and imagination takes flight.`
+            ],
+            quote: `“Words have the power to create worlds where none existed before.” — ${author}`
+          },
+          {
+            pageNumber: 2,
+            chapterTitle: "Chapter I: The Opening Chamber",
+            paragraphs: [
+              `Entering into the core themes of ${genre}, one discovers a labyrinth of human emotions, philosophical inquiries, and memorable portraits of perseverance. The narrative unfolds with precision and grace.`,
+              `Each chapter has been curated to provide an authentic digital reading experience, complete with tactile soundscapes, natural dual-page layouts, and intuitive bookmarking.`,
+              `Take your time to immerse yourself in the prose. Use the toolbar above to adjust font sizing, switch between Parchment, Night Owl, Sepia, and Modern themes, or listen aloud using the built-in voice narrator.`
+            ],
+            quote: `“To read is to fly: it is to soar to a point of vantage which gives a view over wide terrains of history.”`
+          }
+        ]
+      },
+      {
+        number: 2,
+        title: "Echoes of the Mind",
+        pages: [
+          {
+            pageNumber: 3,
+            chapterTitle: "Chapter II: Echoes of the Mind",
+            paragraphs: [
+              `The second movement of ${title} deepens into the complexities of its central motif. Characters confront unforeseen dilemmas, testing their principles against the turbulence of circumstance.`,
+              `The prose style of ${author} is characterized by vivid imagery and lyrical resonance. Every sentence is crafted with deliberate balance, inviting reflection upon the broader tapestry of life.`,
+              `"We do not read to escape life," as the narrator contemplates on this page, "we read so that life may multiply itself inside us ten-thousandfold."`
+            ],
+            quote: `“In the quietest hour of the night, the truth of our convictions speaks most clearly.”`
+          },
+          {
+            pageNumber: 4,
+            chapterTitle: "Chapter II: Echoes of the Mind",
+            paragraphs: [
+              `Observing the world through the lens of ${title}, familiar landscapes transform into avenues of revelation. The dialogue between the protagonists reveals subtleties of character rarely articulated in ordinary speech.`,
+              `The cadence of the narrative quickens here, guiding the reader toward the pivotal turning point where choices must be embraced and destinies fulfilled.`,
+              `Turn forward to uncover the culminating insights of this timeless literary work.`
+            ],
+            quote: `“Destiny is never a single path carved in stone, but an ocean shaped by every gentle tide.”`
+          }
+        ]
+      },
+      {
+        number: 3,
+        title: "The Scholar's Epilogue",
+        pages: [
+          {
+            pageNumber: 5,
+            chapterTitle: "Chapter III: The Scholar's Epilogue",
+            paragraphs: [
+              `As we arrive at the concluding reflections of ${title}, the disparate threads of thought weave together into an enduring tapestry of understanding.`,
+              `${author} leaves the reader with a profound sense of wonder—an invitation to carry the questions posed within these pages back into the bustling rhythm of daily life.`,
+              `"The true ending of a book does not reside on its final page," writes the author, "but in the quiet changes it awakens within the reader's spirit."`
+            ],
+            quote: `“No two readers ever read the same book, for each brings their own soul to the page.”`
+          },
+          {
+            pageNumber: 6,
+            chapterTitle: "Chapter III: The Scholar's Epilogue",
+            paragraphs: [
+              `You have reached the conclusion of this special digital edition in The Reading Room Library.`,
+              `We hope your time with "${title}" by ${author} has been illuminating and enriching. You can return to any previous page using the navigation arrows or the chapter jump menu below.`,
+              `Thank you for reading with The Reading Room Library. Remember to return all physical copies on time to support your fellow readers!`
+            ],
+            quote: `“Happy Reading from The Reading Room Library!” 🏛️`
+          }
+        ]
+      }
+    ]
+  };
+}
+
+async function openBookReader(bookId, targetPage = 1) {
+  const localBook = books.find(b => b.id === Number(bookId));
+  const fallback = getFallbackBookContent(localBook);
+
+  // Try to fetch from backend reader API
+  try {
+    const res = await api(API_BASE + `api/books/${bookId}/read`);
+    if (res && res.success && res.book) {
+      activeReadingBook = res.book;
+    } else {
+      activeReadingBook = fallback;
+    }
+  } catch (e) {
+    activeReadingBook = fallback;
+  }
+
+  // Flatten all pages from chapters for easy dual-page indexing
+  activeReadingBook.allPages = [];
+  (activeReadingBook.chapters || []).forEach(ch => {
+    (ch.pages || []).forEach(pg => {
+      activeReadingBook.allPages.push({
+        ...pg,
+        chapterNum: ch.number,
+        chapterTitle: ch.title
+      });
+    });
+  });
+
+  if (activeReadingBook.allPages.length === 0) {
+    activeReadingBook.allPages = fallback.chapters.flatMap(c => c.pages);
+  }
+
+  totalReadingPages = activeReadingBook.allPages.length;
+
+  // Check if bookmark exists
+  const savedBookmark = localStorage.getItem(`reading_room_bookmark_${activeReadingBook.id}`);
+  currentReadingPage = targetPage || (savedBookmark ? Number(savedBookmark) : 1);
+  if (currentReadingPage > totalReadingPages) currentReadingPage = 1;
+  if (currentReadingPage % 2 === 0) currentReadingPage -= 1; // Always start on odd page for left side
+
+  // Set Reader Header Info
+  readerTitle.textContent = activeReadingBook.title || 'Book Title';
+  readerAuthor.textContent = `by ${activeReadingBook.author || 'Author'}`;
+
+  // Populate Chapter Jump Dropdown
+  if (readerChapterJump) {
+    readerChapterJump.innerHTML = (activeReadingBook.chapters || []).map(ch => 
+      `<option value="${ch.pages[0]?.pageNumber || 1}">Chapter ${ch.number}: ${escapeHtml(ch.title)}</option>`
+    ).join('');
+  }
+
+  // Restore Theme
+  const savedTheme = localStorage.getItem('reading_room_reader_theme') || 'theme-parchment';
+  applyReaderTheme(savedTheme);
+  if (readerThemeSel) readerThemeSel.value = savedTheme;
+
+  // Restore Font Size
+  const savedFontSize = Number(localStorage.getItem('reading_room_reader_font')) || 15;
+  readerFontSize = savedFontSize;
+  updateReaderFontStyles();
+
+  renderReaderPages();
+  showModal(bookReaderModal);
+  playPageFlipSound();
+}
+
+window.openBookReader = openBookReader;
+
+function renderReaderPages() {
+  if (!activeReadingBook || !activeReadingBook.allPages) return;
+
+  const leftPageIndex = currentReadingPage - 1;
+  const rightPageIndex = currentReadingPage;
+
+  const leftData = activeReadingBook.allPages[leftPageIndex];
+  const rightData = activeReadingBook.allPages[rightPageIndex];
+
+  // 1. Render Left Page
+  leftHeaderBook.textContent = activeReadingBook.title || 'The Reading Room';
+  leftHeaderChapter.textContent = leftData ? `Chapter ${leftData.chapterNum || 'I'}` : '';
+  leftPageNum.textContent = currentReadingPage;
+
+  if (leftData) {
+    const firstPara = leftData.paragraphs[0] || '';
+    const dropCapHtml = firstPara
+      ? `<p class="drop-cap-para"><span class="drop-cap">${firstPara.charAt(0)}</span>${escapeHtml(firstPara.slice(1))}</p>`
+      : '';
+    const otherParas = leftData.paragraphs.slice(1).map(p => `<p>${escapeHtml(p)}</p>`).join('');
+    const quoteHtml = leftData.quote ? `<blockquote class="reader-quote">${escapeHtml(leftData.quote)}</blockquote>` : '';
+    leftPageContent.innerHTML = dropCapHtml + otherParas + quoteHtml;
+  } else {
+    leftPageContent.innerHTML = '<div class="reader-empty-page">End of Section</div>';
+  }
+
+  // 2. Render Right Page
+  rightHeaderBook.textContent = activeReadingBook.title || 'The Reading Room';
+  rightHeaderChapter.textContent = rightData ? `Chapter ${rightData.chapterNum || 'I'}` : '';
+  rightPageNum.textContent = rightPageIndex < totalReadingPages ? (currentReadingPage + 1) : '';
+
+  if (rightData) {
+    const paras = rightData.paragraphs.map(p => `<p>${escapeHtml(p)}</p>`).join('');
+    const quoteHtml = rightData.quote ? `<blockquote class="reader-quote">${escapeHtml(rightData.quote)}</blockquote>` : '';
+    rightPageContent.innerHTML = paras + quoteHtml;
+  } else {
+    rightPageContent.innerHTML = `
+      <div style="text-align:center; padding:50px 20px; color:#666;">
+        <div style="font-size:32px; margin-bottom:10px;">🏛️</div>
+        <h4 style="font-family:'Fraunces',serif; font-size:18px; color:var(--forest-dark); margin-bottom:6px;">You have reached the end of this preview edition</h4>
+        <p style="font-size:13px; line-height:1.6;">Borrow the physical volume from the circulation desk to enjoy the complete unabridged work.</p>
+      </div>
+    `;
+  }
+
+  // Update Nav Buttons
+  if (readerPrevBtn) readerPrevBtn.disabled = currentReadingPage <= 1;
+  if (readerNextBtn) readerNextBtn.disabled = currentReadingPage + 1 >= totalReadingPages;
+
+  // Update Indicator
+  const rightNumText = rightPageIndex < totalReadingPages ? `${currentReadingPage + 1}` : `${currentReadingPage}`;
+  const pct = Math.round((currentReadingPage / totalReadingPages) * 100);
+  if (readerPageIndicator) {
+    readerPageIndicator.textContent = `Pages ${currentReadingPage}-${rightNumText} of ${totalReadingPages} (${pct}%)`;
+  }
+
+  // Update Chapter Jump Dropdown
+  if (readerChapterJump && leftData) {
+    const matchingCh = activeReadingBook.chapters.find(ch => ch.number === leftData.chapterNum);
+    if (matchingCh && matchingCh.pages[0]) {
+      readerChapterJump.value = matchingCh.pages[0].pageNumber;
+    }
+  }
+
+  // Update Bookmark Label
+  updateBookmarkButton();
+}
+
+function turnReaderPage(delta) {
+  if (!activeReadingBook || !activeReadingBook.allPages) return;
+  const newPage = currentReadingPage + delta;
+  if (newPage < 1 || newPage > totalReadingPages) return;
+
+  // Stop active TTS when turning page
+  stopTtsNarration();
+
+  // Play realistic page turn audio
+  playPageFlipSound();
+
+  // Visual Flip Animation
+  if (delta > 0 && pageRight) {
+    pageRight.classList.add('page-flipping-forward');
+    setTimeout(() => pageRight.classList.remove('page-flipping-forward'), 400);
+  } else if (delta < 0 && pageLeft) {
+    pageLeft.classList.add('page-flipping-backward');
+    setTimeout(() => pageLeft.classList.remove('page-flipping-backward'), 400);
+  }
+
+  currentReadingPage = newPage;
+  renderReaderPages();
+}
+
+readerPrevBtn?.addEventListener('click', () => turnReaderPage(-2));
+readerNextBtn?.addEventListener('click', () => turnReaderPage(2));
+pageCurlCorner?.addEventListener('click', () => turnReaderPage(2));
+
+readerChapterJump?.addEventListener('change', (e) => {
+  const target = Number(e.target.value);
+  if (target) {
+    currentReadingPage = target % 2 === 0 ? target - 1 : target;
+    renderReaderPages();
+    playPageFlipSound();
+  }
+});
+
+// Bookmarking
+function toggleBookmark() {
+  if (!activeReadingBook) return;
+  const key = `reading_room_bookmark_${activeReadingBook.id}`;
+  const saved = localStorage.getItem(key);
+  if (saved && Number(saved) === currentReadingPage) {
+    localStorage.removeItem(key);
+  } else {
+    localStorage.setItem(key, String(currentReadingPage));
+  }
+  updateBookmarkButton();
+}
+
+function updateBookmarkButton() {
+  if (!activeReadingBook || !bookmarkLabel) return;
+  const key = `reading_room_bookmark_${activeReadingBook.id}`;
+  const saved = localStorage.getItem(key);
+  const isBookmarked = saved && Number(saved) === currentReadingPage;
+
+  if (isBookmarked) {
+    bookmarkLabel.textContent = 'Bookmarked (Pg ' + saved + ')';
+    readerBookmarkBtn.classList.add('active');
+  } else {
+    bookmarkLabel.textContent = 'Bookmark';
+    readerBookmarkBtn.classList.remove('active');
+  }
+}
+
+readerBookmarkBtn?.addEventListener('click', toggleBookmark);
+
+// Text-to-Speech Read Aloud Narrator
+function toggleTtsNarration() {
+  if (isTtsSpeaking) {
+    stopTtsNarration();
+  } else {
+    startTtsNarration();
+  }
+}
+
+function startTtsNarration() {
+  if (!('speechSynthesis' in window)) {
+    alert('Voice narration is not supported in this browser.');
+    return;
+  }
+  window.speechSynthesis.cancel();
+
+  const leftData = activeReadingBook?.allPages[currentReadingPage - 1];
+  const rightData = activeReadingBook?.allPages[currentReadingPage];
+
+  let textToRead = '';
+  if (leftData) textToRead += leftData.paragraphs.join(' ') + ' ';
+  if (rightData) textToRead += rightData.paragraphs.join(' ');
+
+  if (!textToRead.trim()) return;
+
+  const utterance = new SpeechSynthesisUtterance(textToRead);
+  utterance.rate = 0.95;
+  utterance.pitch = 1.0;
+  
+  utterance.onstart = () => {
+    isTtsSpeaking = true;
+    if (ttsLabel) ttsLabel.textContent = '⏹️ Stop';
+    readerTtsBtn.classList.add('active');
+  };
+
+  utterance.onend = () => {
+    isTtsSpeaking = false;
+    if (ttsLabel) ttsLabel.textContent = 'Listen';
+    readerTtsBtn.classList.remove('active');
+  };
+
+  utterance.onerror = () => {
+    isTtsSpeaking = false;
+    if (ttsLabel) ttsLabel.textContent = 'Listen';
+    readerTtsBtn.classList.remove('active');
+  };
+
+  window.speechSynthesis.speak(utterance);
+}
+
+function stopTtsNarration() {
+  if ('speechSynthesis' in window) {
+    window.speechSynthesis.cancel();
+  }
+  isTtsSpeaking = false;
+  if (ttsLabel) ttsLabel.textContent = 'Listen';
+  readerTtsBtn?.classList.remove('active');
+}
+
+readerTtsBtn?.addEventListener('click', toggleTtsNarration);
+
+// Theme Switching
+function applyReaderTheme(themeClass) {
+  if (!bookSpread) return;
+  bookSpread.classList.remove('theme-parchment', 'theme-dark', 'theme-clean', 'theme-sepia');
+  bookSpread.classList.add(themeClass);
+  localStorage.setItem('reading_room_reader_theme', themeClass);
+}
+
+readerThemeSel?.addEventListener('change', (e) => applyReaderTheme(e.target.value));
+
+// Font Size Controls
+function adjustFontSize(delta) {
+  readerFontSize = Math.min(24, Math.max(12, readerFontSize + delta));
+  localStorage.setItem('reading_room_reader_font', String(readerFontSize));
+  updateReaderFontStyles();
+}
+
+function updateReaderFontStyles() {
+  if (leftPageContent) leftPageContent.style.fontSize = `${readerFontSize}px`;
+  if (rightPageContent) rightPageContent.style.fontSize = `${readerFontSize}px`;
+}
+
+readerFontDown?.addEventListener('click', () => adjustFontSize(-1));
+readerFontUp?.addEventListener('click', () => adjustFontSize(1));
+
+// Fullscreen Toggle
+function toggleReaderFullscreen() {
+  if (!document.fullscreenElement) {
+    bookReaderModal.requestFullscreen().catch(() => {});
+  } else {
+    document.exitFullscreen().catch(() => {});
+  }
+}
+
+readerFullscreenBtn?.addEventListener('click', toggleReaderFullscreen);
+
+// Close Reader
+function closeBookReader() {
+  stopTtsNarration();
+  if (document.fullscreenElement) {
+    document.exitFullscreen().catch(() => {});
+  }
+  hideModal(bookReaderModal);
+}
+
+readerCloseBtn?.addEventListener('click', closeBookReader);
+
+// Keyboard Navigation for Flipbook & Escape key
+window.addEventListener('keydown', (e) => {
+  if (bookReaderModal?.classList.contains('show')) {
+    if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') {
+      e.preventDefault();
+      turnReaderPage(2);
+    } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
+      e.preventDefault();
+      turnReaderPage(-2);
+    } else if (e.key === 'Escape') {
+      closeBookReader();
+    }
+  }
+});
+
+// App Main Event Listeners
+document.getElementById('loginBtn')?.addEventListener('click', login);
+loginRoleBtn?.addEventListener('click', () => setRole('admin'));
+studentRoleBtn?.addEventListener('click', () => setRole('student'));
+document.getElementById('logoutBtn')?.addEventListener('click', () => {
+  stopPaymentCamera();
+  stopTtsNarration();
+  currentUser = null;
+  document.getElementById('app-shell').classList.add('hidden');
+  document.getElementById('view-login').classList.remove('hidden');
+  loginUser.value = '';
+  loginPass.value = '';
+});
+
+triggerRemindersBtn?.addEventListener('click', triggerAllReminders);
+refreshPaymentsBtn?.addEventListener('click', async () => {
+  await refreshAllData();
+  renderPaymentsList();
+});
+
+document.getElementById('refreshCheckoutsBtn')?.addEventListener('click', async () => {
+  await refreshAllData();
+  renderRecentCheckouts();
+});
+
+
+document.getElementById('searchInput')?.addEventListener('input', renderCatalog);
+document.getElementById('genreFilter')?.addEventListener('change', renderCatalog);
+document.querySelectorAll('.quick-btn').forEach(btn => btn.addEventListener('click', () => showView(btn.dataset.goto)));
+
+window.addEventListener('DOMContentLoaded', () => {
+  setRole('admin');
+});
+
