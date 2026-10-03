@@ -422,7 +422,7 @@
       </div>
       <div class="panel">
         <table class="lib-table">
-          <thead><tr><th>Name & Email</th><th>Username</th><th>Books Checked Out</th><th>Outstanding Fine</th><th>Actions</th></tr></thead>
+          <thead><tr><th>Name & Email</th><th>Phone Number</th><th>Username</th><th>Books Checked Out</th><th>Outstanding Fine</th><th>Actions</th></tr></thead>
           <tbody id="studentsTableBody"></tbody>
         </table>
       </div>
@@ -633,6 +633,21 @@
     <div class="modal-actions">
       <button class="btn-cancel" id="cancelAddStudent">Cancel</button>
       <button class="btn-confirm" id="confirmAddStudent">Register</button>
+    </div>
+  </div>
+</div>
+
+<!-- EDIT STUDENT MODAL -->
+<div class="modal-backdrop" id="editStudentModal">
+  <div class="modal">
+    <h3>✏️ Edit Student Details</h3>
+    <input type="hidden" id="editStudentId">
+    <div class="field"><label>Full Name</label><input type="text" id="editStudentName" placeholder="Student name"></div>
+    <div class="field"><label>Email Address</label><input type="email" id="editStudentEmail" placeholder="student@email.com"></div>
+    <div class="field"><label>📱 Mobile Phone Number (Real number for SMS alerts)</label><input type="tel" id="editStudentPhone" placeholder="e.g. +91 98765 43210"></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" id="cancelEditStudent">Cancel</button>
+      <button class="btn-confirm" id="confirmEditStudent">💾 Save Changes</button>
     </div>
   </div>
 </div>

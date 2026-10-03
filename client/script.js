@@ -1821,6 +1821,25 @@ document.getElementById('issueConfirmBtn')?.addEventListener('click', async () =
 });
 
 async function doReturn(bookId) {
+  const book = books.find(b => b.id === bookId);
+  if (!book || book.status !== 'out') return;
+
+  // Check if book is overdue — if yes, confirm with user BEFORE calling API
+  const overdue = isOverdue(book);
+  const daysLate = daysOverdue(book);
+  const estimatedFine = daysLate * fineRate;
+
+  if (overdue && estimatedFine > 0) {
+    const confirmed = confirm(
+      `⚠️ This book is ${daysLate} day(s) overdue.\n` +
+      `📖 "${book.title}"\n` +
+      `💰 Estimated Fine: ₹${estimatedFine} (₹${fineRate}/day)\n\n` +
+      `Do you want to proceed with the return?\n` +
+      `(Click OK to return the book, Cancel to go back)`
+    );
+    if (!confirmed) return; // User clicked Cancel — do NOT return the book
+  }
+
   const result = await api(API_BASE + 'return', {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
@@ -1829,16 +1848,13 @@ async function doReturn(bookId) {
   if (result && result.success) {
     playStamp('RETURNED');
     if (result.fineAmount > 0) {
-      const book = books.find(b => b.id === bookId);
-      const payNow = confirm(`⚠️ Overdue Fine Assessed: ₹${result.fineAmount} (calculated at ₹${fineRate}/day).\n\nWould you like to open the UPI QR Payment Modal to settle this fine now?`);
-      if (payNow) {
-        openPaymentModal(result.loanId, null, result.fineAmount, book ? book.title : 'Returned Book Fine');
-      }
+      openPaymentModal(result.loanId, null, result.fineAmount, book ? book.title : 'Returned Book Fine');
     }
     await refreshAllData();
     renderReturnTable();
   }
 }
+
 
 window.doReturn = doReturn;
 
@@ -1896,16 +1912,23 @@ function renderStudentsTable(filteredStudents = null) {
   const tbody = document.getElementById('studentsTableBody');
   tbody.innerHTML = list.map(s => {
     const count = books.filter(b => b.status === 'out' && b.studentId === s.id).length;
+    const phone = s.phone || '—';
     return `
       <tr>
         <td>
           <b>${escapeHtml(s.name)}</b>
           <div style="font-family:'IBM Plex Mono',monospace; font-size:12px; color:#555;">${escapeHtml(s.email)} • ID: ${s.id}</div>
         </td>
+        <td>
+          <span style="font-family:'IBM Plex Mono',monospace; font-size:13px; font-weight:600; color:#1b5e20;" id="phone_display_${s.id}">${escapeHtml(phone)}</span>
+        </td>
         <td>${escapeHtml(s.username)}</td>
         <td><b>${count}</b> title(s)</td>
         <td><span class="fine-badge" id="student_fine_${s.id}">...</span></td>
-        <td><button class="action-btn" onclick="loadStudentProfile(${s.id})">View Account</button></td>
+        <td style="display:flex; gap:6px; flex-wrap:wrap;">
+          <button class="action-btn" onclick="loadStudentProfile(${s.id})">View Account</button>
+          <button class="action-btn" onclick="openEditStudentModal(${s.id})" style="background:#fff8e1; border-color:#b8935a; color:#8d6e3f;">✏️ Edit</button>
+        </td>
       </tr>
     `;
   }).join('');
@@ -1921,6 +1944,7 @@ function renderStudentsTable(filteredStudents = null) {
     }
   });
 }
+
 
 function filterStudentsTable() {
   const query = (studentListSearchInput?.value || '').trim().toLowerCase();
@@ -2102,6 +2126,56 @@ document.getElementById('confirmAddStudent')?.addEventListener('click', async ()
     }
   } else {
     alert(res?.message || 'Registration failed.');
+  }
+});
+
+// -------------------------------------------------------
+// EDIT STUDENT MODAL (Admin can update name, email, phone)
+// -------------------------------------------------------
+
+const editStudentModal = document.getElementById('editStudentModal');
+
+function openEditStudentModal(studentId) {
+  const student = students.find(s => s.id === studentId);
+  if (!student) return alert('Student not found.');
+  document.getElementById('editStudentId').value = studentId;
+  document.getElementById('editStudentName').value = student.name || '';
+  document.getElementById('editStudentEmail').value = student.email || '';
+  document.getElementById('editStudentPhone').value = student.phone || '';
+  showModal(editStudentModal);
+}
+window.openEditStudentModal = openEditStudentModal;
+
+document.getElementById('cancelEditStudent')?.addEventListener('click', () => hideModal(editStudentModal));
+
+document.getElementById('confirmEditStudent')?.addEventListener('click', async () => {
+  const studentId = Number(document.getElementById('editStudentId').value);
+  const name = document.getElementById('editStudentName').value.trim();
+  const email = document.getElementById('editStudentEmail').value.trim();
+  const phone = document.getElementById('editStudentPhone').value.trim();
+
+  if (!name || !email) {
+    alert('Name and email are required.');
+    return;
+  }
+  if (!phone) {
+    alert('Please enter a real mobile phone number for SMS alerts.');
+    return;
+  }
+
+  const res = await api(API_BASE + 'students/' + studentId, {
+    method: 'PUT',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ name, email, phone })
+  });
+
+  if (res && res.success) {
+    hideModal(editStudentModal);
+    await refreshAllData();
+    renderStudentsTable();
+    alert(`✅ Student details updated!\nName: ${name}\nEmail: ${email}\nPhone: ${phone}`);
+  } else {
+    alert(res?.message || 'Failed to update student.');
   }
 });
 

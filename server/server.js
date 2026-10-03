@@ -430,7 +430,7 @@ async function scheduleDueNotifications() {
       });
 
       const res = await sendEmail({ to: student.email, subject, text, html });
-      
+
       // Dispatch 2-Day SMS Notification
       dispatchSmsNotification({
         type: '2day_alert',
@@ -723,6 +723,22 @@ app.post('/students', (req, res) => {
   }).catch(() => { });
 
   res.json({ success: true, student: formatStudent(newStudent) });
+});
+
+// Update student details (name, email, phone)
+app.put('/students/:id', (req, res) => {
+  const id = Number(req.params.id);
+  const student = students.find(s => s.id === id);
+  if (!student) {
+    return res.json({ success: false, message: 'Student not found.' });
+  }
+  const { name, email, phone } = req.body;
+  if (name) student.name = String(name).trim();
+  if (email) student.email = String(email).trim().toLowerCase();
+  if (phone) student.phone = String(phone).trim();
+
+  logActivity(`Student "${student.name}" details updated (Email: ${student.email}, Phone: ${student.phone})`);
+  res.json({ success: true, student: formatStudent(student), message: 'Student updated successfully.' });
 });
 
 // Add book (with rich chapters for digital flipbook reader)
@@ -1422,7 +1438,7 @@ app.get('/api/books/:id/read', (req, res) => {
   if (!book) {
     return res.status(404).json({ success: false, message: 'Book not found.' });
   }
-  
+
   if (!book.chapters || book.chapters.length === 0) {
     const generated = generateBookContent(book.title, book.author, book.genre);
     book.chapters = generated.chapters;
