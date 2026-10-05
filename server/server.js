@@ -337,56 +337,110 @@ if (fs.existsSync(EMAIL_CONFIG_FILE)) {
   }
 }
 
+// --- Pooled, cached SMTP transporter ---
+// A single connection-pooled transporter is reused for all emails.
+// It is lazily created and invalidated whenever settings change.
+let _cachedTransporter = null;
+let _cachedTransporterKey = '';
+
+function _buildTransporterKey() {
+  return `${emailSettings.mode}|${emailSettings.service}|${emailSettings.host}|${emailSettings.port}|${emailSettings.user}|${emailSettings.secure}`;
+}
+
+function invalidateTransporterCache() {
+  if (_cachedTransporter) {
+    try { _cachedTransporter.close(); } catch (_) {}
+    _cachedTransporter = null;
+  }
+  _cachedTransporterKey = '';
+}
+
 function getTransporter() {
   if (!emailSettings.user || !emailSettings.pass) {
+    invalidateTransporterCache();
     return null;
   }
+
+  const currentKey = _buildTransporterKey();
+  if (_cachedTransporter && currentKey === _cachedTransporterKey) {
+    return _cachedTransporter;   // reuse existing pooled connection
+  }
+
+  // Settings changed — rebuild transporter
+  invalidateTransporterCache();
+
   const mode = String(emailSettings.mode || emailSettings.service || '').toLowerCase();
 
-  // 1. Gmail Mode (Uses official Gmail SMTP service & App Password)
+  // Shared timeout options — prevents hangs on slow/unresponsive SMTP servers
+  const timeoutOpts = {
+    connectionTimeout: 10000,   // 10s to establish TCP connection
+    greetingTimeout:   8000,    // 8s for server greeting
+    socketTimeout:     15000    // 15s of inactivity before giving up
+  };
+
+  // 1. Gmail Mode (pooled, uses App Password)
   if (mode === 'gmail' || emailSettings.service === 'gmail') {
-    return nodemailer.createTransport({
+    _cachedTransporter = nodemailer.createTransport({
       service: 'gmail',
+      pool: true,
+      maxConnections: 3,
+      maxMessages: Infinity,
       auth: {
         user: String(emailSettings.user).trim(),
-        pass: String(emailSettings.pass).replace(/\s+/g, '') // Automatically remove any spaces from 16-letter code
-      }
+        pass: String(emailSettings.pass).replace(/\s+/g, '')
+      },
+      ...timeoutOpts
     });
   }
 
   // 2. Ethereal Test Inbox Mode
-  if (mode === 'ethereal') {
-    return nodemailer.createTransport({
+  else if (mode === 'ethereal') {
+    _cachedTransporter = nodemailer.createTransport({
       host: emailSettings.host || 'smtp.ethereal.email',
       port: Number(emailSettings.port) || 587,
       secure: false,
+      pool: true,
+      maxConnections: 2,
       auth: {
         user: String(emailSettings.user).trim(),
         pass: String(emailSettings.pass).trim()
-      }
+      },
+      ...timeoutOpts
     });
   }
 
   // 3. Custom SMTP Host / Outlook / Yahoo
-  if (emailSettings.host && !emailSettings.host.includes('ethereal')) {
-    return nodemailer.createTransport({
+  else if (emailSettings.host && !emailSettings.host.includes('ethereal')) {
+    _cachedTransporter = nodemailer.createTransport({
       host: emailSettings.host.trim(),
       port: Number(emailSettings.port) || 587,
       secure: Boolean(emailSettings.secure),
+      pool: true,
+      maxConnections: 3,
       auth: {
         user: String(emailSettings.user).trim(),
         pass: String(emailSettings.pass).trim()
-      }
+      },
+      ...timeoutOpts
     });
   }
 
-  return nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-      user: String(emailSettings.user).trim(),
-      pass: String(emailSettings.pass).replace(/\s+/g, '')
-    }
-  });
+  // 4. Default fallback — Gmail pooled
+  else {
+    _cachedTransporter = nodemailer.createTransport({
+      service: 'gmail',
+      pool: true,
+      maxConnections: 3,
+      auth: {
+        user: String(emailSettings.user).trim(),
+        pass: String(emailSettings.pass).replace(/\s+/g, '')
+      },
+      ...timeoutOpts
+    });
+  }
+
+  _cachedTransporterKey = currentKey;
+  return _cachedTransporter;
 }
 
 function escapeHtml(value) {
@@ -522,7 +576,7 @@ async function sendEmail(options) {
 
 async function scheduleDueNotifications() {
   const now = new Date();
-  const results = [];
+  const tasks = [];   // collect all notification tasks to run in parallel
 
   for (const record of loanRecords.filter(r => !r.returned)) {
     const student = students.find(s => s.id === record.studentId);
@@ -536,7 +590,7 @@ async function scheduleDueNotifications() {
 
     record.reminders = record.reminders || {};
 
-    // 1. Send 2-DAY REMINDER ALERT (When days remaining is 2 or <= 2 and not yet sent)
+    // 1. Send 2-DAY REMINDER ALERT
     if (daysUntilDue === 2 && !record.reminders.twoDays) {
       record.reminders.twoDays = true;
       const subject = `⏰ Library Alert: "${title}" is due in 2 days`;
@@ -553,30 +607,26 @@ async function scheduleDueNotifications() {
         <p>Please return or renew the book on or before <b>${dueText}</b> to avoid an overdue fine of <b>₹${fineRate} per day</b>.</p>
       `;
       const text = `Dear ${student.name},\n\nYour borrowed book "${title}" is due in 2 days on ${dueText}.\n\nPlease return the book on or before ${dueText} to avoid late fines of ₹${fineRate}/day.\n\nThank you,\nThe Reading Room Library`;
+      const html = generateEmailTemplate({ heading: 'Book Return Reminder — 2 Days Remaining', alertText: alertHtml, bodyHtml });
 
-      const html = generateEmailTemplate({
-        heading: 'Book Return Reminder — 2 Days Remaining',
-        alertText: alertHtml,
-        bodyHtml
-      });
-
-      const res = await sendEmail({ to: student.email, subject, text, html });
-
-      // Dispatch 2-Day SMS Notification
-      dispatchSmsNotification({
-        type: '2day_alert',
-        to: student.phone || '+91 98765 43210',
-        studentName: student.name,
-        bookTitle: title,
-        message: `⏰ Library 2-Day Alert: Hello ${student.name}, "${title}" is due in 2 days on ${dueText}. Please return on time to avoid late fines (₹${fineRate}/day).`,
-        metadata: { loanId: record.id, dueDate: dueText }
-      });
-
-      logActivity(`Sent 2-day reminder & SMS to ${student.name} for "${title}"`);
-      results.push({ student: student.name, email: student.email, phone: student.phone, title, type: '2-day-reminder', result: res });
+      // Queue email + SMS as a parallel task
+      tasks.push(
+        sendEmail({ to: student.email, subject, text, html }).then(res => {
+          dispatchSmsNotification({
+            type: '2day_alert',
+            to: student.phone || '+91 98765 43210',
+            studentName: student.name,
+            bookTitle: title,
+            message: `⏰ Library 2-Day Alert: Hello ${student.name}, "${title}" is due in 2 days on ${dueText}. Please return on time to avoid late fines (₹${fineRate}/day).`,
+            metadata: { loanId: record.id, dueDate: dueText }
+          });
+          logActivity(`Sent 2-day reminder & SMS to ${student.name} for "${title}"`);
+          return { student: student.name, email: student.email, phone: student.phone, title, type: '2-day-reminder', result: res };
+        })
+      );
     }
 
-    // 2. Overdue notice if overdue and reminder not sent
+    // 2. Overdue notice
     if (daysUntilDue < 0 && !record.reminders.overdue) {
       record.reminders.overdue = true;
       const daysLate = Math.abs(daysUntilDue);
@@ -595,35 +645,34 @@ async function scheduleDueNotifications() {
         <p>Please return the book immediately to the library circulation desk and settle the fine via UPI QR code or cash.</p>
       `;
       const text = `Dear ${student.name},\n\nYour borrowed book "${title}" was due on ${dueText} and is now ${daysLate} day(s) overdue.\n\nAccrued late fine: ₹${fineAmount} (₹${fineRate}/day).\n\nPlease return the book immediately.\n\nThank you,\nThe Reading Room Library`;
+      const html = generateEmailTemplate({ heading: 'Overdue Book Notice', alertText: alertHtml, bodyHtml });
 
-      const html = generateEmailTemplate({
-        heading: 'Overdue Book Notice',
-        alertText: alertHtml,
-        bodyHtml
-      });
-
-      const res = await sendEmail({ to: student.email, subject, text, html });
-
-      // Dispatch Overdue SMS Notification
-      dispatchSmsNotification({
-        type: 'overdue_alert',
-        to: student.phone || '+91 98765 43210',
-        studentName: student.name,
-        bookTitle: title,
-        message: `⚠️ Library Overdue Notice: Hello ${student.name}, "${title}" was due on ${dueText} and is now ${daysLate} day(s) overdue. Fine accrued: ₹${fineAmount} (₹${fineRate}/day). Please return immediately.`,
-        metadata: { loanId: record.id, dueDate: dueText, daysLate, fineAmount }
-      });
-
-      logActivity(`Sent overdue notice & SMS to ${student.name} for "${title}" (Fine: ₹${fineAmount})`);
-      results.push({ student: student.name, email: student.email, phone: student.phone, title, type: 'overdue-notice', result: res });
+      // Queue email + SMS as a parallel task
+      tasks.push(
+        sendEmail({ to: student.email, subject, text, html }).then(res => {
+          dispatchSmsNotification({
+            type: 'overdue_alert',
+            to: student.phone || '+91 98765 43210',
+            studentName: student.name,
+            bookTitle: title,
+            message: `⚠️ Library Overdue Notice: Hello ${student.name}, "${title}" was due on ${dueText} and is now ${daysLate} day(s) overdue. Fine accrued: ₹${fineAmount} (₹${fineRate}/day). Please return immediately.`,
+            metadata: { loanId: record.id, dueDate: dueText, daysLate, fineAmount }
+          });
+          logActivity(`Sent overdue notice & SMS to ${student.name} for "${title}" (Fine: ₹${fineAmount})`);
+          return { student: student.name, email: student.email, phone: student.phone, title, type: 'overdue-notice', result: res };
+        })
+      );
     }
   }
 
-  return results;
+  // Fire all emails/SMS in parallel — no waiting for one before starting the next
+  const results = await Promise.allSettled(tasks);
+  return results.filter(r => r.status === 'fulfilled').map(r => r.value);
 }
 
-// Hourly notification check & immediate check on start
-setInterval(scheduleDueNotifications, 60 * 60 * 1000);
+// Check every 5 minutes (was hourly) + immediate check on start
+// 5-minute interval means reminders reach users within 5 minutes of condition being met
+setInterval(scheduleDueNotifications, 5 * 60 * 1000);
 setTimeout(scheduleDueNotifications, 3000);
 
 // Root route
@@ -1360,6 +1409,7 @@ app.post('/api/email-settings', (req, res) => {
 
   try {
     fs.writeFileSync(EMAIL_CONFIG_FILE, JSON.stringify(emailSettings, null, 2));
+    invalidateTransporterCache(); // force new pooled connection with updated credentials
     logActivity('Email/SMTP server configuration updated');
     res.json({ success: true, message: 'Email settings saved successfully.' });
   } catch (err) {
