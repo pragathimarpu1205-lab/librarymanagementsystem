@@ -18,7 +18,6 @@ let currentProfileId = null;
 let currentRole = 'admin';
 let currentView = 'admin-dashboard';
 let activePaymentLoan = null;
-let viewHistory = [];           // stack for back-navigation
 
 // Payment Scanner State
 let payQrScanner = null;
@@ -687,11 +686,9 @@ function buildNav() {
   navTabs.querySelectorAll('.nav-tab').forEach(btn => btn.addEventListener('click', () => showView(btn.dataset.view)));
 }
 
-function showView(name, pushHistory) {
-  if (pushHistory === undefined) pushHistory = true;
-  if (pushHistory && currentView && currentView !== name) {
-    viewHistory.push(currentView);
-    if (viewHistory.length > 20) viewHistory.shift();
+function showView(name, pushHistory = true) {
+  if (pushHistory && currentView !== name) {
+    history.pushState({ view: name, profileId: currentProfileId }, '', '#' + name);
   }
   currentView = name;
   views.forEach(v => v.classList.add('hidden'));
@@ -708,12 +705,27 @@ function showView(name, pushHistory) {
   if (name === 'students') filterStudentsTable();
 }
 
-function goBack() {
-  if (viewHistory.length > 0) {
-    const prev = viewHistory.pop();
-    showView(prev, false);
+// In-app Go Back history state handler
+window.addEventListener('popstate', (e) => {
+  if (e.state && e.state.view) {
+    if (e.state.view === 'student-profile' && e.state.profileId) {
+      loadStudentProfile(e.state.profileId, false);
+    } else {
+      showView(e.state.view, false);
+    }
+  } else {
+    const defaultView = currentUser?.role === 'student' ? 'student-dashboard' : 'admin-dashboard';
+    showView(defaultView, false);
   }
-}
+});
+
+document.getElementById('goBackTopBtn')?.addEventListener('click', () => {
+  if (window.history.state || window.history.length > 1) {
+    window.history.back();
+  } else {
+    showView(currentUser?.role === 'student' ? 'student-dashboard' : 'admin-dashboard');
+  }
+});
 
 async function refreshAllData() {
   const [bookData, studentData, activityData, fineData, loansData, payConfigData, paymentsData, emailLogsData, smsLogsData] = await Promise.all([
@@ -1359,27 +1371,16 @@ function renderRecentCheckouts() {
         <tr>
           <th>#</th>
           <th>Student Name</th>
-          <th>Phone</th>
           <th>Book Title</th>
           <th>Checkout Date</th>
           <th>Checkout Time</th>
           <th>Due Date</th>
           <th>Status</th>
-          <th>SMS Sent</th>
         </tr>
       </thead>
       <tbody>
         ${allLoans.slice(0, 20).map((loan, idx) => {
           const student = students.find(s => s.id === loan.studentId);
-          const phone = loan.studentPhone || (student ? student.phone : '') || '—';
-          const smsLog = issueLogs.find(s =>
-            (s.studentName && loan.studentName && s.studentName === loan.studentName) ||
-            (s.bookTitle && loan.title && s.bookTitle === loan.title && s.to && phone && s.to.replace(/\s+/g,'') === phone.replace(/\s+/g,''))
-          );
-          const smsSent = smsLog
-            ? `<span class="pill paid" style="font-size:11px;">✅ SMS Delivered<br><span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#555;">${escapeHtml(smsLog.to)}</span></span>`
-            : '<span class="pill pending" style="font-size:11px;">📤 Logged</span>';
-
           const statusBadge = loan.returned
             ? `<span class="pill paid">✓ Returned</span>`
             : `<span class="pill" style="background:#e8f5e9;color:#1b5e20;border-color:#a5d6a7;">📖 Issued</span>`;
@@ -1395,7 +1396,6 @@ function renderRecentCheckouts() {
                 <b>${escapeHtml(loan.studentName || (student ? student.name : 'Unknown'))}</b>
                 ${student ? `<div style="font-size:11px;color:#888;font-family:'IBM Plex Mono',monospace;">${escapeHtml(student.email || '')}</div>` : ''}
               </td>
-              <td style="font-family:'IBM Plex Mono',monospace;font-size:12px;">${escapeHtml(phone)}</td>
               <td>
                 <b>${escapeHtml(loan.title)}</b>
                 ${loan.author ? `<div style="font-size:11px;color:#888;">by ${escapeHtml(loan.author)}</div>` : ''}
@@ -1408,7 +1408,6 @@ function renderRecentCheckouts() {
               </td>
               <td style="font-family:'IBM Plex Mono',monospace;font-size:12px;">${escapeHtml(dueDate)}</td>
               <td>${statusBadge}</td>
-              <td>${smsSent}</td>
             </tr>
           `;
         }).join('')}
@@ -1757,7 +1756,7 @@ document.getElementById('grid')?.addEventListener('click', async (event) => {
 
 function renderIssueForm(preselectStudentId = null) {
   const studentSel = document.getElementById('issueStudent');
-  studentSel.innerHTML = students.map(s => `<option value="${s.id}">${escapeHtml(s.name)} (${escapeHtml(s.email)}) • ${escapeHtml(s.phone || 'No phone')}</option>`).join('');
+  studentSel.innerHTML = students.map(s => `<option value="${s.id}">${escapeHtml(s.name)} (${escapeHtml(s.email)})</option>`).join('');
   if (preselectStudentId) studentSel.value = preselectStudentId;
 
   const bookSel = document.getElementById('issueBook');
@@ -1792,7 +1791,6 @@ function updateIssueSummary() {
   const dateStr = now.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
   const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
   const dueDateStr = fmtDate(daysFromNow(days));
-  const studentPhone = student.phone || '+91 98765 43210';
 
   box.classList.add('show');
   box.innerHTML = `
@@ -1801,14 +1799,6 @@ function updateIssueSummary() {
       <b>Book Title:</b> "${escapeHtml(book.title)}" by ${escapeHtml(book.author)}<br>
       <b>Checkout Timestamp:</b> <span style="color:var(--forest-dark); font-weight:bold;">${dateStr} at ${timeStr}</span><br>
       <b>Due Date:</b> <span style="color:var(--brass-dark); font-weight:bold;">${dueDateStr}</span> (${days} days) • <b>Late Fine Rate:</b> ₹${fineRate}/day
-    </div>
-    <div style="background:#ffffff; border:1px dashed var(--brass); border-radius:4px; padding:10px; margin-top:8px; font-size:12.5px;">
-      <div style="font-weight:700; color:var(--forest-dark); margin-bottom:4px; display:flex; align-items:center; gap:6px;">
-        <span>📱 Live SMS Alert Dispatch to: <b>${escapeHtml(studentPhone)}</b></span>
-      </div>
-      <div style="font-style:italic; color:#333; line-height:1.5;">
-        "📚 The Reading Room Library Alert: Hello ${escapeHtml(student.name)}, you have checked out '${escapeHtml(book.title)}' by ${escapeHtml(book.author)} on ${dateStr} at ${timeStr}. Due Date: ${dueDateStr}. Late fine: ₹${fineRate}/day. Happy Reading!"
-      </div>
     </div>
   `;
 }
@@ -1924,15 +1914,11 @@ function renderStudentsTable(filteredStudents = null) {
   const tbody = document.getElementById('studentsTableBody');
   tbody.innerHTML = list.map(s => {
     const count = books.filter(b => b.status === 'out' && b.studentId === s.id).length;
-    const phone = s.phone || '—';
     return `
       <tr>
         <td>
           <b>${escapeHtml(s.name)}</b>
           <div style="font-family:'IBM Plex Mono',monospace; font-size:12px; color:#555;">${escapeHtml(s.email)} • ID: ${s.id}</div>
-        </td>
-        <td>
-          <span style="font-family:'IBM Plex Mono',monospace; font-size:13px; font-weight:600; color:#1b5e20;" id="phone_display_${s.id}">${escapeHtml(phone)}</span>
         </td>
         <td>${escapeHtml(s.username)}</td>
         <td><b>${count}</b> title(s)</td>
@@ -1970,7 +1956,7 @@ function filterStudentsTable() {
   renderStudentsTable(filtered);
 }
 
-async function loadStudentProfile(studentId) {
+async function loadStudentProfile(studentId, pushHistory = true) {
   const result = await api(API_BASE + 'students/' + studentId);
   if (!result?.success) {
     alert('Unable to load student profile.');
@@ -2015,12 +2001,12 @@ async function loadStudentProfile(studentId) {
       }).join('')
     : '<tr><td colspan="6" class="empty">No borrowing history yet.</td></tr>';
 
-  showView('student-profile');
+  showView('student-profile', pushHistory);
 }
 
 window.loadStudentProfile = loadStudentProfile;
 
-profileBackBtn?.addEventListener('click', () => goBack());
+profileBackBtn?.addEventListener('click', () => showView('students'));
 profileIssueBtn?.addEventListener('click', () => {
   renderIssueForm(currentProfileId);
   showView('issue');
@@ -2094,7 +2080,6 @@ function showSignupModal() {
   document.getElementById('sUsername').value = '';
   document.getElementById('sPassword').value = '';
   document.getElementById('sEmail').value = '';
-  if (document.getElementById('sPhone')) document.getElementById('sPhone').value = '';
   showModal(addStudentModal);
 }
 window.showSignupModal = showSignupModal;
@@ -2104,7 +2089,6 @@ document.getElementById('addStudentBtn')?.addEventListener('click', () => {
   document.getElementById('sUsername').value = '';
   document.getElementById('sPassword').value = '';
   document.getElementById('sEmail').value = '';
-  if (document.getElementById('sPhone')) document.getElementById('sPhone').value = '';
   showModal(addStudentModal);
 });
 
@@ -2114,7 +2098,6 @@ document.getElementById('confirmAddStudent')?.addEventListener('click', async ()
   const username = document.getElementById('sUsername').value.trim();
   const password = document.getElementById('sPassword').value.trim();
   const email = document.getElementById('sEmail').value.trim();
-  const phone = document.getElementById('sPhone')?.value.trim() || '+91 98765 ' + Math.floor(10000 + Math.random() * 90000);
 
   if (!name || !username || !password || !email) {
     alert('Please complete all required fields.');
@@ -2123,12 +2106,12 @@ document.getElementById('confirmAddStudent')?.addEventListener('click', async ()
   const res = await api(API_BASE + 'students', {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({ name, username, password, email, phone })
+    body: JSON.stringify({ name, username, password, email })
   });
   if (res && res.success) {
     hideModal(addStudentModal);
     await refreshAllData();
-    alert(`Student registered successfully! Welcome SMS sent to ${phone}.`);
+    alert(`Student registered successfully!`);
     if (!currentUser) {
       loginUser.value = email;
       loginPass.value = password;
@@ -2142,7 +2125,7 @@ document.getElementById('confirmAddStudent')?.addEventListener('click', async ()
 });
 
 // -------------------------------------------------------
-// EDIT STUDENT MODAL (Admin can update name, email, phone)
+// EDIT STUDENT MODAL (Admin can update name, email)
 // -------------------------------------------------------
 
 const editStudentModal = document.getElementById('editStudentModal');
@@ -2153,7 +2136,6 @@ function openEditStudentModal(studentId) {
   document.getElementById('editStudentId').value = studentId;
   document.getElementById('editStudentName').value = student.name || '';
   document.getElementById('editStudentEmail').value = student.email || '';
-  document.getElementById('editStudentPhone').value = student.phone || '';
   showModal(editStudentModal);
 }
 window.openEditStudentModal = openEditStudentModal;
@@ -2164,28 +2146,23 @@ document.getElementById('confirmEditStudent')?.addEventListener('click', async (
   const studentId = Number(document.getElementById('editStudentId').value);
   const name = document.getElementById('editStudentName').value.trim();
   const email = document.getElementById('editStudentEmail').value.trim();
-  const phone = document.getElementById('editStudentPhone').value.trim();
 
   if (!name || !email) {
     alert('Name and email are required.');
-    return;
-  }
-  if (!phone) {
-    alert('Please enter a real mobile phone number for SMS alerts.');
     return;
   }
 
   const res = await api(API_BASE + 'students/' + studentId, {
     method: 'PUT',
     headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({ name, email, phone })
+    body: JSON.stringify({ name, email })
   });
 
   if (res && res.success) {
     hideModal(editStudentModal);
     await refreshAllData();
     renderStudentsTable();
-    alert(`✅ Student details updated!\nName: ${name}\nEmail: ${email}\nPhone: ${phone}`);
+    alert(`✅ Student details updated!\nName: ${name}\nEmail: ${email}`);
   } else {
     alert(res?.message || 'Failed to update student.');
   }

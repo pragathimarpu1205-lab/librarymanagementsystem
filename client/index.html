@@ -45,6 +45,7 @@
       </div>
       <div class="nav-tabs" id="navTabs"></div>
       <div class="top-actions">
+        <button class="top-btn" id="goBackTopBtn" title="Go Back to Previous Screen">🔙 Go Back</button>
         <button class="top-btn" id="openMailHubTopBtn" title="Email Settings, 1-Click Inbox & Custom Mail">📧 Mail Hub</button>
         <button class="top-btn" id="openPaymentSettingsBtn" title="Configure UPI QR Code for Fine Payments">💳 UPI QR Config</button>
         <div class="user-block">
@@ -98,189 +99,161 @@
       <div class="panel" id="recentCheckoutsPanel">
         <div class="panel-header">
           <div>
-            <h3>📚 Recent Book Checkouts</h3>
-            <div class="panel-sub">Books issued today with exact checkout date, time &amp; SMS notification status</div>
+            <h3>📖 Recent Book Checkouts</h3>
+            <div class="panel-sub">Live log of issued titles, borrowers, checkout timestamps, and due dates</div>
           </div>
-          <button class="action-btn" id="refreshCheckoutsBtn">🔄 Refresh</button>
         </div>
         <div id="recentCheckoutsList"></div>
       </div>
 
-      <!-- Quick Actions -->
-      <div class="panel">
-        <h3>Quick Actions</h3>
-        <div class="quick-actions">
-          <button class="quick-btn" data-goto="mail-hub"><div class="qt">📧 Mail Hub</div><div class="qs">1-click test inbox & SMTP settings</div></button>
-          <button class="quick-btn" data-goto="issue"><div class="qt">Issue a Book</div><div class="qs">assign a title to a student</div></button>
-          <button class="quick-btn" data-goto="return"><div class="qt">Return a Book</div><div class="qs">calculate fine & close loan</div></button>
-          <button class="quick-btn" data-goto="catalog"><div class="qt">Manage Catalog</div><div class="qs">add or remove titles</div></button>
-          <button class="quick-btn" data-goto="students"><div class="qt">Student Accounts</div><div class="qs">view history & clear fines</div></button>
-        </div>
-      </div>
-
-      <!-- Recent Fine Payments -->
+      <!-- Recent UPI Fine Payments Panel -->
       <div class="panel">
         <div class="panel-header">
           <div>
-            <h3>💳 Recent UPI Fine Payments</h3>
-            <div class="panel-sub">Payments submitted via UPI QR scanner & screenshot proofs</div>
+            <h3>💳 Verified UPI Fine Payments</h3>
+            <div class="panel-sub">Completed transactions with receipt numbers, amounts, and uploaded proof screenshots</div>
           </div>
-          <button class="action-btn" id="refreshPaymentsBtn">🔄 Refresh</button>
         </div>
         <div id="paymentsList"></div>
       </div>
 
-      <div class="two-col">
-        <!-- Student Search -->
-        <div class="panel admin-search-panel">
-          <h3>Student Quick Lookup</h3>
-          <div class="search-box">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-            <input type="text" id="studentSearchInput" placeholder="Search students by name, ID, or email…">
-          </div>
-          <div id="studentSearchResults" class="search-results"></div>
-          <div id="studentDetailsCard"></div>
-        </div>
+      <!-- Recent System Activity -->
+      <div class="panel">
+        <h3>Activity log</h3>
+        <div class="activity-log" id="activityList"></div>
+      </div>
 
-        <!-- Fine Rate & Activity -->
-        <div>
-          <div class="panel">
-            <h3>Fine Rate Configuration</h3>
-            <div class="field"><label>Daily Late Return Fine</label>
-              <div class="rate-input-row" style="display:flex; gap:10px; align-items:center;">
-                <input type="number" id="fineRateInput" min="0" step="1" style="max-width:140px;">
-                <span style="font-family:'IBM Plex Mono',monospace; font-size:13px;">₹ / day overdue</span>
-              </div>
-            </div>
-            <button class="confirm-btn" id="saveFineRateBtn" style="margin-top:8px;">Save fine rate</button>
-          </div>
-
-          <div class="panel">
-            <h3>Recent System Activity</h3>
-            <div id="activityList"></div>
-          </div>
+      <!-- Quick Student Search in Admin -->
+      <div class="panel">
+        <h3>Find borrower record</h3>
+        <div class="field" style="margin-bottom:8px;">
+          <input type="text" id="studentSearchInput" placeholder="Type name, student ID, or email…">
         </div>
+        <div id="studentSearchResults"></div>
       </div>
     </div>
 
-    <!-- 2. MAIL & NOTIFICATIONS HUB VIEW -->
-    <div class="view hidden" id="view-mail-hub">
-      <div class="page-title">📧 Email & Notifications Hub</div>
-      <div class="page-sub">configure mail delivery with 1-click test inboxes, Gmail presets, or custom SMTP</div>
+    <!-- 2. STUDENT DASHBOARD -->
+    <div class="view hidden" id="view-student-dashboard">
+      <div class="page-title" id="studentWelcome">Student Portal</div>
+      <div class="page-sub">your active book checkouts, due dates, ₹10/day fine calculation & UPI payment QR scanner</div>
 
-      <!-- Provider Selection Cards -->
-      <div class="email-providers-grid">
-        <!-- 1-Click Instant Test Inbox -->
-        <div class="provider-card featured" id="providerEtherealCard">
-          <div class="badge-featured">Instant • Zero Setup</div>
-          <h4>⚡ 1-Click Instant Test Inbox</h4>
-          <p>No password or configuration required! Instantly generates a live test SMTP inbox where every sent email gets a clickable browser preview link.</p>
-          <button class="confirm-btn" id="btnCreateEtherealInbox" style="margin-top:10px; width:100%;">Generate Instant Test Inbox</button>
-          <div id="etherealStatus" style="margin-top:8px; font-family:'IBM Plex Mono',monospace; font-size:12px;"></div>
-        </div>
+      <!-- Fine & Reminder Alerts -->
+      <div id="studentFineBanner"></div>
+      <div id="studentDue2Banner"></div>
 
-        <!-- Gmail Mode -->
-        <div class="provider-card" id="providerGmailCard">
-          <h4>🔴 Google / Gmail Mode</h4>
-          <p>Deliver real emails to students' actual Gmail addresses using a secure Google 16-letter App Password.</p>
-          <button class="action-btn primary" id="btnSelectGmailMode" style="margin-top:10px; width:100%;">Configure Gmail</button>
-        </div>
-
-        <!-- Custom SMTP -->
-        <div class="provider-card" id="providerCustomCard">
-          <h4>⚙️ Custom SMTP Server</h4>
-          <p>Connect Outlook, Yahoo, AWS SES, SendGrid, or your institution's custom SMTP mail server.</p>
-          <button class="action-btn" id="btnSelectCustomMode" style="margin-top:10px; width:100%;">Configure Custom SMTP</button>
-        </div>
+      <!-- Quick Stats for Student -->
+      <div class="stat-grid">
+        <div class="stat-tile"><div class="num" id="s-borrowed">0</div><div class="label">My Checked Out Books</div></div>
+        <div class="stat-tile warn"><div class="num" id="s-overdue">0</div><div class="label">My Overdue Books</div></div>
+        <div class="stat-tile warn"><div class="num" id="s-fine">₹0</div><div class="label">My Total Unpaid Fine</div></div>
+        <div class="stat-tile"><div class="num" id="s-total">0</div><div class="label">Titles in Library</div></div>
       </div>
 
-      <div class="two-col" style="margin-top:24px;">
-        <!-- Email Settings Form -->
-        <div class="panel">
-          <h3>SMTP Configuration Details</h3>
+      <!-- My Borrowed Books Panel -->
+      <div class="panel">
+        <div class="panel-header">
+          <div>
+            <h3>📚 My Borrowed Books</h3>
+            <div class="panel-sub">Track due dates, accrued ₹10/day fines, or click to read digital flipbooks</div>
+          </div>
+        </div>
+        <div id="myBooksList"></div>
+      </div>
+
+      <!-- Borrowing & Fine Payment History -->
+      <div class="panel">
+        <div class="panel-header">
+          <div>
+            <h3>📜 Borrowing & Fine History</h3>
+            <div class="panel-sub">Past loans, return dates, late days, and UPI payment clearance history</div>
+          </div>
+        </div>
+        <table class="lib-table">
+          <thead><tr><th>Title</th><th>Issued</th><th>Due Date</th><th>Returned</th><th>Late Days</th><th>Fine</th><th>Status</th><th>Action</th></tr></thead>
+          <tbody id="studentHistoryBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 3. MAIL HUB VIEW (ADMIN) -->
+    <div class="view hidden" id="view-mail-hub">
+      <div class="page-title">📧 Email Settings, 1-Click Inbox & Custom Mail</div>
+      <div class="page-sub">configure SMTP or 1-click test inbox, test email sending & view delivered log web pages</div>
+
+      <!-- Ethereal 1-Click Setup Box -->
+      <div class="panel" style="background:#f0f9ff; border:1px solid #bae6fd;">
+        <div class="panel-header">
+          <div>
+            <h3 style="color:#0369a1;">⚡ 1-Click Live Test Email Inbox</h3>
+            <div class="panel-sub" style="color:#0284c7;">Click below to automatically generate a free test inbox. All emails sent will open in real web browser preview links!</div>
+          </div>
+          <button class="action-btn primary" id="btnCreateTestInbox" style="background:#0284c7;">✨ Create Instant Test Inbox</button>
+        </div>
+        <div id="testInboxStatus" style="font-family:'IBM Plex Mono',monospace; font-size:12.5px; margin-top:8px; color:#0369a1;"></div>
+      </div>
+
+      <!-- Mail Settings Form -->
+      <div class="panel">
+        <h3>⚙️ Mail Server Configuration</h3>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
           <div class="field">
-            <label>Current Delivery Provider</label>
-            <select id="hubEmailService">
-              <option value="gmail">Gmail (smtp.gmail.com)</option>
-              <option value="outlook">Outlook / Hotmail (smtp.office365.com)</option>
-              <option value="yahoo">Yahoo Mail (smtp.mail.yahoo.com)</option>
-              <option value="ethereal">Ethereal (Instant Test Inbox)</option>
-              <option value="custom">Custom SMTP Server</option>
+            <label>Service Provider</label>
+            <select id="cfgMailService">
+              <option value="ethereal">Ethereal (Free Instant Test Inbox)</option>
+              <option value="gmail">Gmail SMTP (requires App Password)</option>
+              <option value="smtp">Custom SMTP Server</option>
             </select>
           </div>
           <div class="field">
-            <label>Sender Email Address (Username)</label>
-            <input type="email" id="hubEmailUser" placeholder="e.g. yourlibrary@gmail.com">
-          </div>
-          <div class="field">
-            <label>Password / App Password</label>
-            <input type="password" id="hubEmailPass" placeholder="••••••••••••••••">
-          </div>
-          <div class="field">
-            <label>Sender Name / From Header</label>
-            <input type="text" id="hubEmailFrom" placeholder="The Reading Room Library <noreply@readingroom.edu>">
-          </div>
-          <div id="hubCustomFields" style="display:none;">
-            <div class="field"><label>SMTP Host</label><input type="text" id="hubSmtpHost" placeholder="smtp.yourserver.com"></div>
-            <div class="field"><label>SMTP Port</label><input type="number" id="hubSmtpPort" placeholder="465 (SSL) or 587 (TLS)"></div>
-          </div>
-          <button class="confirm-btn" id="btnSaveHubSettings" style="width:100%;">Save Email Settings</button>
-
-          <!-- Gmail App Password Accordion Guide -->
-          <details class="guide-accordion" style="margin-top:16px;">
-            <summary>📖 How to get a Gmail App Password in 60 seconds</summary>
-            <ol style="margin:10px 0 0 18px; font-size:13px; line-height:1.7; color:#444;">
-              <li>Go to your <b>Google Account</b> (<a href="https://myaccount.google.com" target="_blank">myaccount.google.com</a>).</li>
-              <li>Click <b>Security</b> in the left navigation.</li>
-              <li>Ensure <b>2-Step Verification</b> is turned ON.</li>
-              <li>Search for <b>"App Passwords"</b> in the search bar.</li>
-              <li>Enter name (e.g. <i>Library System</i>) and click <b>Create</b>.</li>
-              <li>Copy the <b>16-letter code</b> and paste it into the password box above!</li>
-            </ol>
-          </details>
-        </div>
-
-        <!-- Direct Email Composer & Live Test Tool -->
-        <div>
-          <!-- Live Test Tool -->
-          <div class="panel">
-            <h3>🧪 Send Test Email</h3>
-            <div style="display:flex; gap:8px;">
-              <input type="email" id="hubTestEmailInput" placeholder="Enter recipient email address" style="flex:1; padding:9px; border:1px solid var(--card-shadow); border-radius:3px;">
-              <button class="action-btn primary" id="btnHubSendTest">Send Test</button>
-            </div>
-            <div id="hubTestEmailStatus" style="margin-top:8px; font-family:'IBM Plex Mono',monospace; font-size:12px;"></div>
-          </div>
-
-          <!-- Direct Custom Email Composer -->
-          <div class="panel">
-            <h3>✍️ Direct Student Email Composer</h3>
-            <div class="field">
-              <label>Select Student or Enter Email</label>
-              <select id="hubComposerStudentSel" style="margin-bottom:6px;">
-                <option value="">-- Choose registered student --</option>
-              </select>
-              <input type="email" id="hubComposerEmail" placeholder="Or enter student email address">
-            </div>
-            <div class="field">
-              <label>Subject</label>
-              <input type="text" id="hubComposerSubject" placeholder="e.g. Special Library Notice regarding your account">
-            </div>
-            <div class="field">
-              <label>Message Content</label>
-              <textarea id="hubComposerMessage" rows="3" placeholder="Write your message here..."></textarea>
-            </div>
-            <button class="action-btn primary" id="btnHubSendCustomEmail" style="width:100%; padding:10px;">📤 Send Email to Student</button>
+            <label>Sender From Address / Name</label>
+            <input type="text" id="cfgMailFrom" placeholder="The Reading Room <noreply@readingroom.edu>">
           </div>
         </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+          <div class="field">
+            <label>SMTP Email / User</label>
+            <input type="text" id="cfgMailUser" placeholder="e.g. demo@ethereal.email or admin@gmail.com">
+          </div>
+          <div class="field">
+            <label>SMTP Password / App Password</label>
+            <input type="password" id="cfgMailPass" placeholder="••••••••••••••••">
+          </div>
+        </div>
+
+        <div class="modal-actions" style="margin-top:10px; justify-content:flex-start; gap:12px;">
+          <button class="action-btn primary" id="btnSaveMailSettings">💾 Save Mail Settings</button>
+          <button class="action-btn" id="btnTestMail">🧪 Send Test Email</button>
+        </div>
+        <div id="mailSettingsStatus" style="font-family:'IBM Plex Mono',monospace; font-size:12px; margin-top:8px;"></div>
       </div>
 
-      <!-- Live Sent Email History with Open Preview Links -->
-      <div class="panel" style="margin-top:24px;">
+      <!-- Send Custom Email Form -->
+      <div class="panel">
+        <h3>✉️ Compose Custom Email to Student</h3>
+        <div class="field">
+          <label>Recipient Student</label>
+          <select id="customMailStudentSel"></select>
+        </div>
+        <div class="field">
+          <label>Subject</label>
+          <input type="text" id="customMailSubject" placeholder="e.g. Notice regarding your reserved book / fine clearance">
+        </div>
+        <div class="field">
+          <label>Email Body Content</label>
+          <textarea id="customMailBody" rows="4" style="width:100%; border:1px solid var(--card-shadow); border-radius:4px; padding:10px; font-family:inherit; font-size:14px;" placeholder="Dear student, ..."></textarea>
+        </div>
+        <button class="action-btn primary" id="btnSendCustomMail">🚀 Send Custom Email</button>
+        <div id="customMailStatus" style="font-family:'IBM Plex Mono',monospace; font-size:12px; margin-top:8px;"></div>
+      </div>
+
+      <!-- Email Log Table -->
+      <div class="panel">
         <div class="panel-header">
           <div>
-            <h3>📜 Dispatched Email Logs & Live Web Previews</h3>
-            <div class="panel-sub">History of all 2-day alerts, overdue notices, payment receipts, and test emails</div>
+            <h3>📜 Sent Email Dispatches & Web Preview Links</h3>
+            <div class="panel-sub">Click "View Email Webpage" to open the actual rendered HTML message</div>
           </div>
           <button class="action-btn" id="btnRefreshEmailLogs">🔄 Refresh Logs</button>
         </div>
@@ -288,95 +261,59 @@
       </div>
     </div>
 
-    <!-- 3. STUDENT DASHBOARD -->
-    <div class="view hidden" id="view-student-dashboard">
-      <div class="page-title" id="studentWelcome">Welcome back</div>
-      <div class="page-sub">your borrowed titles, due dates, and fine payments</div>
-
-      <!-- Outstanding Fine Banner (shown if fines exist) -->
-      <div id="studentFineBanner" class="hidden"></div>
-
-      <!-- 2-Day Due Reminder Banner (shown if book due in 2 days) -->
-      <div id="studentDue2Banner" class="hidden"></div>
-
-      <div class="stat-grid">
-        <div class="stat-tile"><div class="num" id="s-borrowed">0</div><div class="label">Currently borrowed</div></div>
-        <div class="stat-tile warn"><div class="num" id="s-overdue">0</div><div class="label">Overdue books</div></div>
-        <div class="stat-tile warn"><div class="num" id="s-fine">₹0</div><div class="label">Outstanding fine</div></div>
-        <div class="stat-tile"><div class="num" id="s-total">0</div><div class="label">Library titles</div></div>
-      </div>
-
-      <div class="panel">
-        <div class="panel-header">
-          <div>
-            <h3>My Borrowed Books</h3>
-            <div class="panel-sub">Titles currently in your possession with live due dates, fine status & 3D digital reader</div>
-          </div>
-        </div>
-        <div id="myBooksList"></div>
-      </div>
-
-      <div class="panel">
-        <div class="panel-header">
-          <div>
-            <h3>Borrowing & Fine Payment History</h3>
-            <div class="panel-sub">Your previous loans, return timestamps, and payment status</div>
-          </div>
-        </div>
-        <table class="lib-table">
-          <thead><tr><th>Title</th><th>Issued</th><th>Due</th><th>Returned</th><th>Late</th><th>Fine</th><th>Status</th><th>Action</th></tr></thead>
-          <tbody id="studentHistoryBody"></tbody>
-        </table>
-      </div>
-    </div>
-
     <!-- 4. CATALOG VIEW -->
     <div class="view hidden" id="view-catalog">
       <div class="page-title">Catalog</div>
-      <div class="page-sub">browse every title in the library collection</div>
+      <div class="page-sub">search and filter titles on the shelf or on loan</div>
       <div class="controls">
         <div class="search-box">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          <input type="text" id="searchInput" placeholder="Search title, author, or call number…">
+          <input type="text" id="searchInput" placeholder="Search by title, author, ID, call number…">
         </div>
-        <select class="ctrl" id="genreFilter"><option value="">All genres</option></select>
-        <button class="add-btn hidden" id="addBookBtn">+ Add a title</button>
+        <select class="genre-select" id="genreFilter"><option value="">All genres</option></select>
+        <button class="add-btn" id="addBookBtn">+ Add title</button>
       </div>
+
+      <div class="fine-rate-config-box" style="margin-bottom:16px; display:flex; align-items:center; justify-content:space-between; background:var(--card); padding:10px 16px; border-radius:6px; border:1px solid var(--card-shadow);">
+        <div style="font-family:'IBM Plex Mono',monospace; font-size:13px;">
+          💰 <b>Global Late Fine Rate:</b> <span style="color:var(--overdue); font-weight:700;">₹<span id="currentFineRateLabel">10</span>/day</span> (Accrues automatically per late day)
+        </div>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <input type="number" id="fineRateInput" value="10" min="0" style="width:70px; padding:4px 8px; font-family:'IBM Plex Mono',monospace; border:1px solid #ccc; border-radius:4px;">
+          <button class="action-btn" id="saveFineRateBtn">Update Fine Rate</button>
+        </div>
+      </div>
+
       <div class="grid" id="grid"></div>
-      <div class="empty" id="emptyState" style="display:none;">No titles match. Try clearing your search or filters.</div>
+      <div class="empty" id="catalogEmpty" style="display:none; padding:40px 0;">No titles match your search.</div>
     </div>
 
     <!-- 5. ISSUE BOOK VIEW -->
     <div class="view hidden" id="view-issue">
       <div class="page-title">Issue a book</div>
-      <div class="page-sub">assign an available title to a registered student</div>
-      <div class="panel issue-form">
-        <div id="issueStudentInfo" style="margin-bottom:14px; display:none; border-radius:4px; padding:12px; background:var(--sage);">
-          <div style="font-weight:600; margin-bottom:4px;">Issuing to</div>
-          <div id="issueStudentName" style="font-weight:bold;"></div>
-          <div id="issueStudentId" style="color:#555; font-size:12.5px;"></div>
-          <div id="issueStudentEmail" style="color:#555; font-size:12.5px;"></div>
-        </div>
+      <div class="page-sub">record a checkout, calculate due date & set up ₹10/day fine tracking</div>
+      <div class="panel form-panel">
         <div class="field">
-          <label>Student</label>
+          <label>Select Student</label>
           <select id="issueStudent"></select>
         </div>
+
         <div class="field">
-          <label>Search books</label>
-          <div class="search-box"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-            <input type="text" id="issueBookSearch" placeholder="Search title, author, or ID…"></div>
-        </div>
-        <div class="field"><label>Book</label>
+          <label>Filter & Select Book to Issue</label>
+          <input type="text" id="issueBookSearch" placeholder="Search book title or author..." style="margin-bottom:6px;">
           <select id="issueBook"></select>
         </div>
-        <div class="field"><label>Loan duration</label>
+
+        <div class="field">
+          <label>Loan length (due date & ₹10/day fine start after this)</label>
           <select id="issueDays">
             <option value="14">14 days</option>
             <option value="21">21 days</option>
             <option value="30">30 days</option>
-            <option value="2">2 days (Test 2-day reminder alert)</option>
+            <option value="1">1 day (Test overdue fine)</option>
           </select>
         </div>
+
         <div class="summary-box" id="issueSummary"></div>
         <button class="confirm-btn" id="issueConfirmBtn">Confirm & issue</button>
       </div>
@@ -409,7 +346,7 @@
       </div>
       <div class="panel">
         <table class="lib-table">
-          <thead><tr><th>Name & Email</th><th>Phone Number</th><th>Username</th><th>Books Checked Out</th><th>Outstanding Fine</th><th>Actions</th></tr></thead>
+          <thead><tr><th>Name & Email</th><th>Username</th><th>Books Checked Out</th><th>Outstanding Fine</th><th>Actions</th></tr></thead>
           <tbody id="studentsTableBody"></tbody>
         </table>
       </div>
@@ -450,53 +387,95 @@
       </div>
     </div>
 
+  </div><!-- /.wrap -->
+</div><!-- /#app-shell -->
+
+<!-- DIGITAL 3D BOOK FLIPBOOK READER MODAL -->
+<div class="modal-backdrop" id="bookReaderModal" style="z-index:9999;">
+  <div class="reader-modal-content">
+    <div class="reader-toolbar">
+      <div class="reader-title-block">
+        <span class="book-t" id="readerTitle">Book Title</span>
+        <span class="book-a" id="readerAuthor">by Author</span>
+      </div>
+      <div class="reader-tools">
+        <button class="reader-tool-btn" id="readerBookmarkBtn" title="Toggle Bookmark">🔖 <span id="bookmarkLabel">Bookmark</span></button>
+        <button class="reader-tool-btn" id="readerTtsBtn" title="Read Aloud Text to Speech">🔊 <span id="ttsLabel">Read Aloud</span></button>
+        <select class="reader-theme-select" id="readerThemeSel">
+          <option value="paper">📜 Parchment Paper</option>
+          <option value="sepia">☕ Vintage Sepia</option>
+          <option value="dark">🌙 Dark Mode</option>
+        </select>
+        <button class="reader-tool-btn" id="readerFontDown">A-</button>
+        <button class="reader-tool-btn" id="readerFontUp">A+</button>
+        <button class="reader-tool-btn" id="readerFullscreenBtn" title="Fullscreen Reader">⛶</button>
+        <button class="reader-close-btn" id="readerCloseBtn">✕</button>
+      </div>
+    </div>
+
+    <!-- 3D Book Viewport -->
+    <div class="reader-viewport" id="readerViewport">
+      <div class="book-3d-wrapper" id="bookSpread">
+        <!-- Left Page -->
+        <div class="book-page page-left" id="pageLeft">
+          <div class="page-header"><span id="leftHeaderBook">Title</span> · <span id="leftHeaderChapter">Chapter</span></div>
+          <div class="page-content" id="leftPageContent">Loading text...</div>
+          <div class="page-footer"><span class="page-num" id="leftPageNum">1</span></div>
+        </div>
+        <!-- Right Page -->
+        <div class="book-page page-right" id="pageRight">
+          <div class="page-header"><span id="rightHeaderBook">Title</span> · <span id="rightHeaderChapter">Chapter</span></div>
+          <div class="page-content" id="rightPageContent">Loading text...</div>
+          <div class="page-footer"><span class="page-num" id="rightPageNum">2</span></div>
+          <div class="page-curl-corner" id="pageCurlCorner"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Reader Bottom Controls -->
+    <div class="reader-bottombar">
+      <button class="nav-arrow" id="readerPrevBtn">‹ Prev Pages</button>
+      <div class="reader-progress-block">
+        <select id="readerChapterJump" class="chapter-select"></select>
+        <span class="page-indicator" id="readerPageIndicator">Page 1-2 of 6</span>
+      </div>
+      <button class="nav-arrow" id="readerNextBtn">Next Pages ›</button>
+    </div>
   </div>
 </div>
 
-<!-- ================= MODALS ================= -->
+<!-- =================================================== -->
+<!-- MODALS -->
+<!-- =================================================== -->
 
-<!-- 1. UPI QR CODE & PAYMENT SCANNER MODAL (SCANNER ONLY FOR PAYMENTS) -->
+<!-- 1. UPI QR PAYMENT & QR SCANNER MODAL -->
 <div class="modal-backdrop" id="paymentModal">
-  <div class="modal large">
-    <div class="panel-header" style="margin-bottom:10px;">
-      <h3>💳 Fine Payment & UPI QR Scanner</h3>
-      <div class="role-toggle" style="margin-bottom:0; max-width:260px;">
-        <button type="button" class="active" id="tabPayShowQr">📱 Scan Library QR</button>
-        <button type="button" id="tabPayScanner">📷 Payment Scanner</button>
+  <div class="modal" style="max-width:480px;">
+    <h3>💳 Fine Payment & UPI QR Scanner</h3>
+    <div class="panel-sub" style="margin-bottom:12px;">Settle ₹10/day overdue fine instantly via UPI QR Code</div>
+    
+    <div class="payment-tabs" style="display:flex; border-bottom:1px solid var(--card-shadow); margin-bottom:14px;">
+      <button class="pay-tab active" id="tabPayShowQr" style="flex:1; padding:8px; background:none; border:none; border-bottom:2px solid var(--forest); font-weight:600; cursor:pointer;">1. Display Library UPI QR</button>
+      <button class="pay-tab" id="tabPayScanner" style="flex:1; padding:8px; background:none; border:none; border-bottom:2px solid transparent; font-weight:600; cursor:pointer;">2. 📷 Scan Receipt/QR</button>
+    </div>
+
+    <!-- Tab 1: Show Library QR Code -->
+    <div id="payTabShowQrContent">
+      <div class="qr-display-box" style="text-align:center; padding:16px; background:#fafafa; border:1px solid var(--card-shadow); border-radius:6px; margin-bottom:14px;">
+        <div id="payQrContainer" style="display:inline-block; padding:10px; background:#fff; border:1px solid #ddd; border-radius:8px;"></div>
+        <div id="payFineAmountLabel" style="font-size:22px; font-weight:700; color:var(--overdue); margin-top:8px;">Amount Due: ₹0</div>
+        <div id="payUpiIdText" style="font-family:'IBM Plex Mono',monospace; font-size:13px; color:#555; margin-top:4px;">UPI ID: librarypay@upi</div>
+        <div style="font-size:11.5px; color:#777; margin-top:6px;">Scan with Google Pay, PhonePe, Paytm, BHIM, or any UPI app</div>
       </div>
     </div>
 
-    <!-- Amount Badge -->
-    <div class="qr-amount-box" style="margin-bottom:14px;">
-      <div class="amount-label">Fine Amount to Settle</div>
-      <div class="amount-value" id="qrFineAmount">₹10</div>
-      <div class="rate-note" id="qrFineDescription">Calculated at ₹10 per overdue day</div>
-    </div>
-
-    <!-- TAB 1: Display Scannable UPI QR Code -->
-    <div id="payTabShowQrContent" class="qr-payment-card">
-      <div class="qr-code-frame">
-        <img id="dynamicQrImage" class="qr-code-img" src="" alt="UPI Payment QR Code">
-      </div>
-
-      <div>
-        <div class="upi-id-pill">
-          <span>UPI ID: <b id="displayUpiId">librarypay@upi</b></span>
-          <button type="button" class="copy-btn" id="copyUpiBtn">Copy</button>
-        </div>
-      </div>
-      <p style="font-size:12px; color:#666; margin-bottom:12px;">
-        Scan with Google Pay, PhonePe, Paytm, or any UPI app to pay the exact amount.
-      </p>
-    </div>
-
-    <!-- TAB 2: Camera & Screenshot Payment Scanner -->
-    <div id="payTabScannerContent" class="hidden" style="margin-bottom:14px;">
-      <div class="panel" style="padding:14px; background:var(--card); margin-bottom:12px;">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-          <strong style="font-size:13px;">📷 Scan Payment QR or Receipt</strong>
-          <div style="display:flex; gap:6px;">
-            <button type="button" class="action-btn primary" id="btnStartPayCam">🎥 Start Camera</button>
+    <!-- Tab 2: Camera Scanner & Screenshot Reader -->
+    <div id="payTabScannerContent" class="hidden">
+      <div class="scanner-box" style="border:1px solid var(--card-shadow); border-radius:6px; padding:10px; background:#fafafa; margin-bottom:12px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+          <div style="font-weight:600; font-size:13px;">Camera QR Code Scanner</div>
+          <div>
+            <button type="button" class="action-btn primary" id="btnStartPayCam" style="font-size:11px; padding:4px 10px;">📷 Start Camera</button>
             <button type="button" class="action-btn danger" id="btnStopPayCam" style="display:none;">⏹️ Stop Camera</button>
           </div>
         </div>
@@ -616,7 +595,6 @@
     <div class="field"><label>Username</label><input type="text" id="sUsername" placeholder="e.g. priya"></div>
     <div class="field"><label>Password</label><input type="password" id="sPassword" placeholder="Choose a password"></div>
     <div class="field"><label>Email</label><input type="email" id="sEmail" placeholder="e.g. priya@gmail.com"></div>
-    <div class="field"><label>Mobile Phone Number (for SMS & WhatsApp alerts)</label><input type="tel" id="sPhone" placeholder="e.g. +91 98765 43210"></div>
     <div class="modal-actions">
       <button class="btn-cancel" id="cancelAddStudent">Cancel</button>
       <button class="btn-confirm" id="confirmAddStudent">Register</button>
@@ -631,7 +609,6 @@
     <input type="hidden" id="editStudentId">
     <div class="field"><label>Full Name</label><input type="text" id="editStudentName" placeholder="Student name"></div>
     <div class="field"><label>Email Address</label><input type="email" id="editStudentEmail" placeholder="student@email.com"></div>
-    <div class="field"><label>📱 Mobile Phone Number (Real number for SMS alerts)</label><input type="tel" id="editStudentPhone" placeholder="e.g. +91 98765 43210"></div>
     <div class="modal-actions">
       <button class="btn-cancel" id="cancelEditStudent">Cancel</button>
       <button class="btn-confirm" id="confirmEditStudent">💾 Save Changes</button>

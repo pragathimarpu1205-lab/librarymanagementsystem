@@ -2,9 +2,9 @@
   "fineRate": 10,
   "nextStudentId": 8,
   "nextBookId": 11,
-  "nextLoanId": 8,
+  "nextLoanId": 9,
   "nextPaymentId": 2,
-  "nextSmsId": 14,
+  "nextSmsId": 15,
   "students": [
     {
       "id": 1,
@@ -43,8 +43,8 @@
       "name": "kavya",
       "username": "kavya123",
       "password": "12345",
-      "email": "grandhikavya00@gmail.com",
-      "phone": "9652886689"
+      "email": "241801340006@cutmap.ac.in",
+      "phone": "23456789"
     },
     {
       "id": 6,
@@ -70,7 +70,7 @@
       "author": "Toni Morrison",
       "genre": "Literary Fiction",
       "call": "813.54 MOR",
-      "status": "available",
+      "status": "out",
       "coverTheme": "burgundy",
       "publicationYear": "1987",
       "pagesCount": 6,
@@ -99,7 +99,10 @@
             "Outside, the wind picked up the fallen autumn leaves, swirling them around the porch steps like whispers of an enduring peace."
           ]
         }
-      ]
+      ],
+      "studentId": 5,
+      "issued": "2026-10-05T05:13:37.276Z",
+      "due": "2026-10-19T05:13:37.276Z"
     },
     {
       "id": 2,
@@ -627,6 +630,33 @@
         "due": false,
         "overdue": false
       }
+    },
+    {
+      "id": 8,
+      "bookId": 1,
+      "studentId": 5,
+      "title": "Beloved",
+      "author": "Toni Morrison",
+      "studentName": "kavya",
+      "studentPhone": "9652886689",
+      "issued": "2026-10-05T05:13:37.276Z",
+      "due": "2026-10-19T05:13:37.276Z",
+      "issuedDate": "05 Oct 2026",
+      "issuedTime": "10:43 AM",
+      "issuedTimestamp": "2026-10-05T05:13:37.274Z",
+      "dueText": "19 Oct 2026",
+      "loanDays": 14,
+      "returned": null,
+      "fineAmount": null,
+      "paymentStatus": "pending",
+      "fineRateAtLoan": 10,
+      "reminders": {
+        "twoDays": false,
+        "threeDays": false,
+        "oneDay": false,
+        "due": false,
+        "overdue": false
+      }
     }
   ],
   "paymentRecords": [
@@ -646,6 +676,18 @@
     }
   ],
   "activityLog": [
+    {
+      "time": "10:45",
+      "text": "Student \"kavya\" details updated (Email: 241801340006@cutmap.ac.in, Phone: 23456789)"
+    },
+    {
+      "time": "10:43",
+      "text": "\"Beloved\" issued to kavya on 05 Oct 2026 at 10:43 AM (SMS sent to 9652886689)"
+    },
+    {
+      "time": "10:41",
+      "text": "Student \"kavya\" details updated (Email: grandhikavyasree00@gmail.com, Phone: 9652886689)"
+    },
     {
       "time": "18:28",
       "text": "\"Circe\" issued to Aisha Khan on 03 Oct 2026 at 06:28 PM (SMS sent to +91 98765 43210)"
@@ -696,6 +738,73 @@
     }
   ],
   "emailLogs": [
+    {
+      "id": 22,
+      "to": "241801340006@cutmap.ac.in",
+      "subject": "🧪 Library Management System — SMTP Test Email",
+      "timestamp": "2026-10-05T05:49:27.166Z",
+      "status": "success",
+      "error": null,
+      "previewUrl": null,
+      "messageId": "<4fb86833-3d0f-db54-3256-af33ee8f7243@gmail.com>"
+    },
+    {
+      "id": 21,
+      "to": "grandhikavyasree00@gmail.com",
+      "subject": "Book Issued: \"Beloved\" (05 Oct 2026 at 10:43 AM)",
+      "timestamp": "2026-10-05T05:13:37.282Z",
+      "status": "success",
+      "error": null,
+      "previewUrl": null,
+      "messageId": "<74ad9568-9b6d-e034-4267-79976da0c516@gmail.com>"
+    },
+    {
+      "id": 20,
+      "to": "241801340006@cutmap.ac.in",
+      "subject": "🧪 Library Management System — SMTP Test Email",
+      "timestamp": "2026-10-05T05:12:24.785Z",
+      "status": "success",
+      "error": null,
+      "previewUrl": null,
+      "messageId": "<a83c9a86-86be-7294-b48d-cd2cf35a045b@gmail.com>"
+    },
+    {
+      "id": 19,
+      "to": "grandhikavyasree00@gmail.com",
+      "subject": "fine",
+      "timestamp": "2026-10-05T05:11:37.864Z",
+      "status": "success",
+      "error": null,
+      "previewUrl": null,
+      "messageId": "<c7452eef-735e-00c8-0b86-b7075b672f8f@gmail.com>"
+    },
+    {
+      "id": 16,
+      "to": "241801340006@cutmap.ac.in",
+      "subject": "🧪 Library Management System — SMTP Test Email",
+      "timestamp": "2026-10-05T05:10:33.301Z",
+      "status": "failed",
+      "error": "Connection timeout",
+      "previewUrl": null
+    },
+    {
+      "id": 16,
+      "to": "241801340006@cutmap.ac.in",
+      "subject": "🧪 Library Management System — SMTP Test Email",
+      "timestamp": "2026-10-05T05:10:33.089Z",
+      "status": "failed",
+      "error": "getaddrinfo ENOTFOUND smtp.gmail.com",
+      "previewUrl": null
+    },
+    {
+      "id": 16,
+      "to": "241801340006@cutmap.ac.in",
+      "subject": "🧪 Library Management System — SMTP Test Email",
+      "timestamp": "2026-10-05T05:10:32.908Z",
+      "status": "failed",
+      "error": "getaddrinfo ENOTFOUND smtp.gmail.com",
+      "previewUrl": null
+    },
     {
       "id": 15,
       "to": "261904150002@cutmap.ac.in",
@@ -848,6 +957,23 @@
     }
   ],
   "smsLogs": [
+    {
+      "id": 14,
+      "type": "issue_alert",
+      "to": "9652886689",
+      "studentName": "kavya",
+      "bookTitle": "Beloved",
+      "message": "📚 The Reading Room Library Alert: Hello kavya, you have checked out \"Beloved\" by Toni Morrison on 05 Oct 2026 at 10:43 AM. Due Date: 19 Oct 2026 (14 days). Late fine: ₹10/day. Enjoy reading!",
+      "status": "delivered",
+      "timestamp": "2026-10-05T05:13:37.276Z",
+      "loanId": 8,
+      "bookId": 1,
+      "studentId": 5,
+      "issuedDate": "05 Oct 2026",
+      "issuedTime": "10:43 AM",
+      "dueDate": "19 Oct 2026",
+      "loanDays": 14
+    },
     {
       "id": 13,
       "type": "issue_alert",

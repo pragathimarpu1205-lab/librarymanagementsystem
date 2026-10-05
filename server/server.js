@@ -865,31 +865,21 @@ app.get('/admin-stats', (req, res) => {
 
 // Register student
 app.post('/students', (req, res) => {
-  const { name, username, password, email, phone } = req.body;
+  const { name, username, password, email } = req.body;
   if (!name || !username || !password || !email) {
     return res.json({ success: false, message: 'Name, username, email, and password are required.' });
   }
   const cleanUsername = String(username).trim().toLowerCase();
   const cleanEmail = String(email).trim().toLowerCase();
-  const cleanPhone = String(phone || `+91 98765 ${Math.floor(10000 + Math.random() * 90000)}`).trim();
   const exists = students.some(s =>
     String(s.username).toLowerCase() === cleanUsername || String(s.email).toLowerCase() === cleanEmail
   );
   if (exists) {
     return res.json({ success: false, message: 'Username or email already exists. Choose another.' });
   }
-  const newStudent = { id: nextStudentId++, name, username: cleanUsername, password, email: cleanEmail, phone: cleanPhone };
+  const newStudent = { id: nextStudentId++, name, username: cleanUsername, password, email: cleanEmail };
   students.push(newStudent);
-  logActivity(`${name} registered as a new student (${cleanEmail}, ${cleanPhone})`);
-
-  // Welcome SMS Notification
-  dispatchSmsNotification({
-    type: 'welcome',
-    to: cleanPhone,
-    studentName: name,
-    bookTitle: 'Library Membership Active',
-    message: `🎉 Welcome to The Reading Room Library, ${name}! Your membership is active. You can now browse our catalog, read digital flipbooks, and borrow titles.`
-  });
+  logActivity(`${name} registered as a new student (${cleanEmail})`);
 
   // Welcome email
   sendEmail({
@@ -905,19 +895,18 @@ app.post('/students', (req, res) => {
   res.json({ success: true, student: formatStudent(newStudent) });
 });
 
-// Update student details (name, email, phone)
+// Update student details (name, email)
 app.put('/students/:id', (req, res) => {
   const id = Number(req.params.id);
   const student = students.find(s => s.id === id);
   if (!student) {
     return res.json({ success: false, message: 'Student not found.' });
   }
-  const { name, email, phone } = req.body;
+  const { name, email } = req.body;
   if (name) student.name = String(name).trim();
   if (email) student.email = String(email).trim().toLowerCase();
-  if (phone) student.phone = String(phone).trim();
 
-  logActivity(`Student "${student.name}" details updated (Email: ${student.email}, Phone: ${student.phone})`);
+  logActivity(`Student "${student.name}" details updated (Email: ${student.email})`);
   res.json({ success: true, student: formatStudent(student), message: 'Student updated successfully.' });
 });
 
