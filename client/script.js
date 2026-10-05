@@ -18,6 +18,7 @@ let currentProfileId = null;
 let currentRole = 'admin';
 let currentView = 'admin-dashboard';
 let activePaymentLoan = null;
+let viewHistory = [];           // stack for back-navigation
 
 // Payment Scanner State
 let payQrScanner = null;
@@ -686,7 +687,12 @@ function buildNav() {
   navTabs.querySelectorAll('.nav-tab').forEach(btn => btn.addEventListener('click', () => showView(btn.dataset.view)));
 }
 
-function showView(name) {
+function showView(name, pushHistory) {
+  if (pushHistory === undefined) pushHistory = true;
+  if (pushHistory && currentView && currentView !== name) {
+    viewHistory.push(currentView);
+    if (viewHistory.length > 20) viewHistory.shift();
+  }
   currentView = name;
   views.forEach(v => v.classList.add('hidden'));
   const target = document.getElementById(`view-${name}`);
@@ -700,6 +706,13 @@ function showView(name) {
   if (name === 'issue') renderIssueForm();
   if (name === 'return') renderReturnTable();
   if (name === 'students') filterStudentsTable();
+}
+
+function goBack() {
+  if (viewHistory.length > 0) {
+    const prev = viewHistory.pop();
+    showView(prev, false);
+  }
 }
 
 async function refreshAllData() {
@@ -2007,7 +2020,7 @@ async function loadStudentProfile(studentId) {
 
 window.loadStudentProfile = loadStudentProfile;
 
-profileBackBtn?.addEventListener('click', () => showView('students'));
+profileBackBtn?.addEventListener('click', () => goBack());
 profileIssueBtn?.addEventListener('click', () => {
   renderIssueForm(currentProfileId);
   showView('issue');
