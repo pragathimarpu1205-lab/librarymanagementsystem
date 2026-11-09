@@ -896,31 +896,46 @@ app.post('/students', (req, res) => {
 });
 
 // Update student details (name, email)
-app.put('/students/:id', (req, res) => {
+function handleUpdateStudent(req, res) {
   const id = Number(req.params.id);
   const student = students.find(s => s.id === id);
   if (!student) {
     return res.json({ success: false, message: 'Student not found.' });
   }
-  const { name, email } = req.body;
+  const { name, email, phone } = req.body;
   if (name) student.name = String(name).trim();
   if (email) student.email = String(email).trim().toLowerCase();
+  if (phone) student.phone = String(phone).trim();
 
   logActivity(`Student "${student.name}" details updated (Email: ${student.email})`);
+  saveData();
   res.json({ success: true, student: formatStudent(student), message: 'Student updated successfully.' });
-});
+}
+app.put('/students/:id', handleUpdateStudent);
+app.put('/api/students/:id', handleUpdateStudent);
 
 // Delete student account
-app.delete('/students/:id', (req, res) => {
+function handleDeleteStudent(req, res) {
   const id = Number(req.params.id);
   const index = students.findIndex(s => s.id === id);
   if (index === -1) {
     return res.json({ success: false, message: 'Student not found.' });
   }
+  const studentName = students[index].name;
+  const activeLoans = books.filter(b => b.status === 'out' && b.studentId === id);
+  if (activeLoans.length > 0) {
+    return res.json({
+      success: false,
+      message: `Cannot remove student "${studentName}". They currently have ${activeLoans.length} active borrowed book(s). Please return them first.`
+    });
+  }
   const [removed] = students.splice(index, 1);
   logActivity(`Student "${removed.name}" (${removed.email}) deleted`);
-  res.json({ success: true, message: 'Student account deleted successfully.' });
-});
+  saveData();
+  res.json({ success: true, message: `Student "${removed.name}" removed successfully.` });
+}
+app.delete('/students/:id', handleDeleteStudent);
+app.delete('/api/students/:id', handleDeleteStudent);
 
 // Add book (with rich chapters for digital flipbook reader)
 app.post('/books', (req, res) => {

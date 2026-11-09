@@ -1,10 +1,10 @@
 {
   "fineRate": 10,
-  "nextStudentId": 8,
+  "nextStudentId": 10,
   "nextBookId": 11,
-  "nextLoanId": 9,
+  "nextLoanId": 11,
   "nextPaymentId": 2,
-  "nextSmsId": 15,
+  "nextSmsId": 25,
   "students": [
     {
       "id": 1,
@@ -43,8 +43,8 @@
       "name": "kavya",
       "username": "kavya123",
       "password": "12345",
-      "email": "241801340006@cutmap.ac.in",
-      "phone": "23456789"
+      "email": "grandhikavya00@gmail.com",
+      "phone": "9652886689"
     },
     {
       "id": 6,
@@ -61,6 +61,14 @@
       "password": "12345",
       "email": "261904150002@cutmap.ac.in",
       "phone": "9032810567"
+    },
+    {
+      "id": 8,
+      "name": "lokesh",
+      "username": "lokesh123",
+      "password": "12345",
+      "email": "241801120005@cutmap.ac.in",
+      "phone": "+91 7702801043"
     }
   ],
   "books": [
@@ -100,9 +108,9 @@
           ]
         }
       ],
-      "studentId": 5,
-      "issued": "2026-10-05T05:13:37.276Z",
-      "due": "2026-10-19T05:13:37.276Z"
+      "studentId": 1,
+      "issued": "2026-11-09T11:53:52.132Z",
+      "due": "2026-11-23T11:53:52.132Z"
     },
     {
       "id": 2,
@@ -110,7 +118,7 @@
       "author": "Ursula K. Le Guin",
       "genre": "Science Fiction",
       "call": "813.54 LEG",
-      "status": "available",
+      "status": "out",
       "coverTheme": "indigo",
       "publicationYear": "1969",
       "pagesCount": 6,
@@ -139,7 +147,10 @@
             "I took out my transmitter to send word to the stars. The world called Winter was opening its doors to the wider universe at last."
           ]
         }
-      ]
+      ],
+      "studentId": 8,
+      "issued": "2026-11-04T14:53:33.278Z",
+      "due": "2026-11-18T14:53:33.278Z"
     },
     {
       "id": 3,
@@ -499,7 +510,7 @@
         "threeDays": false,
         "oneDay": false,
         "due": false,
-        "overdue": false
+        "overdue": true
       }
     },
     {
@@ -547,7 +558,7 @@
         "threeDays": false,
         "oneDay": false,
         "due": false,
-        "overdue": false
+        "overdue": true
       }
     },
     {
@@ -574,7 +585,7 @@
         "threeDays": false,
         "oneDay": false,
         "due": false,
-        "overdue": false
+        "overdue": true
       }
     },
     {
@@ -601,7 +612,7 @@
         "threeDays": false,
         "oneDay": false,
         "due": false,
-        "overdue": false
+        "overdue": true
       }
     },
     {
@@ -628,23 +639,23 @@
         "threeDays": false,
         "oneDay": false,
         "due": false,
-        "overdue": false
+        "overdue": true
       }
     },
     {
       "id": 8,
-      "bookId": 1,
-      "studentId": 5,
-      "title": "Beloved",
-      "author": "Toni Morrison",
-      "studentName": "kavya",
-      "studentPhone": "9652886689",
-      "issued": "2026-10-05T05:13:37.276Z",
-      "due": "2026-10-19T05:13:37.276Z",
-      "issuedDate": "05 Oct 2026",
-      "issuedTime": "10:43 AM",
-      "issuedTimestamp": "2026-10-05T05:13:37.274Z",
-      "dueText": "19 Oct 2026",
+      "bookId": 2,
+      "studentId": 8,
+      "title": "The Left Hand of Darkness",
+      "author": "Ursula K. Le Guin",
+      "studentName": "lokesh",
+      "studentPhone": "+91 7702801043",
+      "issued": "2026-11-04T14:53:33.278Z",
+      "due": "2026-11-18T14:53:33.278Z",
+      "issuedDate": "04 Nov 2026",
+      "issuedTime": "08:23 PM",
+      "issuedTimestamp": "2026-11-04T14:53:33.275Z",
+      "dueText": "18 Nov 2026",
       "loanDays": 14,
       "returned": null,
       "fineAmount": null,
@@ -657,6 +668,62 @@
         "due": false,
         "overdue": false
       }
+    },
+    {
+      "id": 9,
+      "bookId": 1,
+      "studentId": 1,
+      "title": "Beloved",
+      "author": "Toni Morrison",
+      "studentName": "Aisha Khan",
+      "studentPhone": "+91 98765 43210",
+      "issued": "2026-11-09T11:53:52.132Z",
+      "due": "2026-11-23T11:53:52.132Z",
+      "issuedDate": "09 Nov 2026",
+      "issuedTime": "05:23 PM",
+      "issuedTimestamp": "2026-11-09T11:53:52.125Z",
+      "dueText": "23 Nov 2026",
+      "loanDays": 14,
+      "returned": null,
+      "fineAmount": null,
+      "paymentStatus": "pending",
+      "fineRateAtLoan": 10,
+      "reminders": {
+        "twoDays": false,
+        "threeDays": false,
+        "oneDay": false,
+        "due": false,
+        "overdue": false
+      }
+    },
+    {
+      "id": 10,
+      "bookId": 6,
+      "studentId": 9,
+      "title": "How to Do Nothing",
+      "author": "Jenny Odell",
+      "studentName": "venkatapathi",
+      "studentPhone": "7729921287",
+      "issued": "2026-11-09T11:54:08.086Z",
+      "due": "2026-11-23T11:54:08.086Z",
+      "issuedDate": "09 Nov 2026",
+      "issuedTime": "05:24 PM",
+      "issuedTimestamp": "2026-11-09T11:54:08.085Z",
+      "dueText": "23 Nov 2026",
+      "loanDays": 14,
+      "returned": "2026-11-09T11:59:37.277Z",
+      "fineAmount": 0,
+      "paymentStatus": "paid",
+      "fineRateAtLoan": 10,
+      "reminders": {
+        "twoDays": false,
+        "threeDays": false,
+        "oneDay": false,
+        "due": false,
+        "overdue": false
+      },
+      "returnDate": "09 Nov 2026",
+      "returnTime": "05:29 PM"
     }
   ],
   "paymentRecords": [
@@ -677,16 +744,64 @@
   ],
   "activityLog": [
     {
-      "time": "10:45",
-      "text": "Student \"kavya\" details updated (Email: 241801340006@cutmap.ac.in, Phone: 23456789)"
+      "time": "17:43",
+      "text": "Student \"sathwika\" (241801340004@cutmap.ac.in) deleted"
     },
     {
-      "time": "10:43",
-      "text": "\"Beloved\" issued to kavya on 05 Oct 2026 at 10:43 AM (SMS sent to 9652886689)"
+      "time": "17:30",
+      "text": "Student \"sathwika\" details updated (Email: 241801340004@cutmap.ac.in, Phone: +918977570454)"
     },
     {
-      "time": "10:41",
-      "text": "Student \"kavya\" details updated (Email: grandhikavyasree00@gmail.com, Phone: 9652886689)"
+      "time": "17:30",
+      "text": "Student \"sathwika\" details updated (Email: 241801340004@cutmap.ac.in, Phone: +918977570454)"
+    },
+    {
+      "time": "17:29",
+      "text": "\"How to Do Nothing\" returned by venkatapathi on 09 Nov 2026 at 05:29 PM (On Time)"
+    },
+    {
+      "time": "17:24",
+      "text": "\"How to Do Nothing\" issued to venkatapathi on 09 Nov 2026 at 05:24 PM (SMS sent to 7729921287)"
+    },
+    {
+      "time": "17:23",
+      "text": "\"Beloved\" issued to Aisha Khan on 09 Nov 2026 at 05:23 PM (SMS sent to +91 98765 43210)"
+    },
+    {
+      "time": "17:23",
+      "text": "venkatapathi registered as a new student (teppalavenkat777@gmail.com, 7729921287)"
+    },
+    {
+      "time": "20:23",
+      "text": "\"The Left Hand of Darkness\" issued to lokesh on 04 Nov 2026 at 08:23 PM (SMS sent to +91 7702801043)"
+    },
+    {
+      "time": "20:23",
+      "text": "Student \"lokesh\" details updated (Email: 241801120005@cutmap.ac.in, Phone: +91 7702801043)"
+    },
+    {
+      "time": "20:22",
+      "text": "lokesh registered as a new student (241801120005@cutmap.ac.in, +91 98765 95292)"
+    },
+    {
+      "time": "11:04",
+      "text": "Sent overdue notice & SMS to Aisha Khan for \"Circe\" (Fine: ₹160)"
+    },
+    {
+      "time": "11:04",
+      "text": "Sent overdue notice & SMS to Aisha Khan for \"Braiding Sweetgrass\" (Fine: ₹160)"
+    },
+    {
+      "time": "11:03",
+      "text": "Sent overdue notice & SMS to kavya for \"The Sympathizer\" (Fine: ₹160)"
+    },
+    {
+      "time": "11:03",
+      "text": "Sent overdue notice & SMS to Aisha Khan for \"An Immense World\" (Fine: ₹160)"
+    },
+    {
+      "time": "11:03",
+      "text": "Sent overdue notice & SMS to Aisha Khan for \"Piranesi\" (Fine: ₹280)"
     },
     {
       "time": "18:28",
@@ -739,71 +854,164 @@
   ],
   "emailLogs": [
     {
-      "id": 22,
-      "to": "241801340006@cutmap.ac.in",
-      "subject": "🧪 Library Management System — SMTP Test Email",
-      "timestamp": "2026-10-05T05:49:27.166Z",
+      "id": 31,
+      "to": "pragathimarpu55@gmail.com",
+      "subject": "Beloved",
+      "timestamp": "2026-11-09T11:55:45.582Z",
       "status": "success",
       "error": null,
       "previewUrl": null,
-      "messageId": "<4fb86833-3d0f-db54-3256-af33ee8f7243@gmail.com>"
+      "messageId": "<9cca0a78-e451-d350-ff0f-8b6a2f9e1489@gmail.com>"
+    },
+    {
+      "id": 30,
+      "to": "teppalavenkat777@gmail.com",
+      "subject": "java",
+      "timestamp": "2026-11-09T11:54:40.587Z",
+      "status": "success",
+      "error": null,
+      "previewUrl": null,
+      "messageId": "<a2a54f0c-9d5e-c754-5d44-0c061cca1346@gmail.com>"
+    },
+    {
+      "id": 29,
+      "to": "teppalavenkat777@gmail.com",
+      "subject": "Book Issued: \"How to Do Nothing\" (09 Nov 2026 at 05:24 PM)",
+      "timestamp": "2026-11-09T11:54:08.094Z",
+      "status": "success",
+      "error": null,
+      "previewUrl": null,
+      "messageId": "<4a84ac0a-f1a3-a115-e364-6b45d47d35e4@gmail.com>"
+    },
+    {
+      "id": 28,
+      "to": "aisha@gmail.com",
+      "subject": "Book Issued: \"Beloved\" (09 Nov 2026 at 05:23 PM)",
+      "timestamp": "2026-11-09T11:53:52.147Z",
+      "status": "success",
+      "error": null,
+      "previewUrl": null,
+      "messageId": "<788c7613-7753-2e44-080b-ff735c5cc98c@gmail.com>"
+    },
+    {
+      "id": 27,
+      "to": "teppalavenkat777@gmail.com",
+      "subject": "Welcome to The Reading Room Library",
+      "timestamp": "2026-11-09T11:53:40.076Z",
+      "status": "success",
+      "error": null,
+      "previewUrl": null,
+      "messageId": "<ce8ae87c-a04c-75c9-75b4-de749e13be4a@gmail.com>"
+    },
+    {
+      "id": 26,
+      "to": "241801120005@cutmap.ac.in",
+      "subject": "Beloved",
+      "timestamp": "2026-11-04T14:53:57.630Z",
+      "status": "success",
+      "error": null,
+      "previewUrl": null,
+      "messageId": "<0586bdf6-60a1-4e9f-638b-8a41dc468071@gmail.com>"
+    },
+    {
+      "id": 25,
+      "to": "241801120005@cutmap.ac.in",
+      "subject": "Book Issued: \"The Left Hand of Darkness\" (04 Nov 2026 at 08:23 PM)",
+      "timestamp": "2026-11-04T14:53:33.283Z",
+      "status": "success",
+      "error": null,
+      "previewUrl": null,
+      "messageId": "<085d837e-65be-99be-dca8-624dab07a9a5@gmail.com>"
+    },
+    {
+      "id": 24,
+      "to": "241801120005@cutmap.ac.in",
+      "subject": "Welcome to The Reading Room Library",
+      "timestamp": "2026-11-04T14:52:22.444Z",
+      "status": "success",
+      "error": null,
+      "previewUrl": null,
+      "messageId": "<fffb1b8a-44fc-b34f-5848-3a4d24a55800@gmail.com>"
+    },
+    {
+      "id": 23,
+      "to": "pragathimarpu55@gmail.com",
+      "subject": "Beloved",
+      "timestamp": "2026-11-04T14:50:45.674Z",
+      "status": "success",
+      "error": null,
+      "previewUrl": null,
+      "messageId": "<08fa10a2-4e4f-5ec0-4357-4e1d1497f510@gmail.com>"
+    },
+    {
+      "id": 22,
+      "to": "grandhikavya00@gmail.com",
+      "subject": "Beloved",
+      "timestamp": "2026-11-02T05:42:00.207Z",
+      "status": "success",
+      "error": null,
+      "previewUrl": null,
+      "messageId": "<10fbff65-bcc2-142f-23bb-c7d70a43fb7d@gmail.com>"
     },
     {
       "id": 21,
-      "to": "grandhikavyasree00@gmail.com",
-      "subject": "Book Issued: \"Beloved\" (05 Oct 2026 at 10:43 AM)",
-      "timestamp": "2026-10-05T05:13:37.282Z",
+      "to": "pragathimarpu55@gmail.com",
+      "subject": "Beloved",
+      "timestamp": "2026-11-02T05:41:06.798Z",
       "status": "success",
       "error": null,
       "previewUrl": null,
-      "messageId": "<74ad9568-9b6d-e034-4267-79976da0c516@gmail.com>"
+      "messageId": "<1cc805c9-4bd4-77a4-9215-b990ee24e52b@gmail.com>"
     },
     {
       "id": 20,
-      "to": "241801340006@cutmap.ac.in",
-      "subject": "🧪 Library Management System — SMTP Test Email",
-      "timestamp": "2026-10-05T05:12:24.785Z",
+      "to": "aisha@gmail.com",
+      "subject": "⚠️ Overdue Notice: \"Circe\" — Fine Accruing (₹160)",
+      "timestamp": "2026-11-02T05:34:04.950Z",
       "status": "success",
       "error": null,
       "previewUrl": null,
-      "messageId": "<a83c9a86-86be-7294-b48d-cd2cf35a045b@gmail.com>"
+      "messageId": "<2ed5b668-d6ed-c4b7-f746-eb4b21087ab0@gmail.com>"
     },
     {
       "id": 19,
-      "to": "grandhikavyasree00@gmail.com",
-      "subject": "fine",
-      "timestamp": "2026-10-05T05:11:37.864Z",
+      "to": "aisha@gmail.com",
+      "subject": "⚠️ Overdue Notice: \"Braiding Sweetgrass\" — Fine Accruing (₹160)",
+      "timestamp": "2026-11-02T05:33:58.824Z",
       "status": "success",
       "error": null,
       "previewUrl": null,
-      "messageId": "<c7452eef-735e-00c8-0b86-b7075b672f8f@gmail.com>"
+      "messageId": "<26f2e02a-ef3d-1188-e1bb-6bb09357d71a@gmail.com>"
+    },
+    {
+      "id": 18,
+      "to": "grandhikavya00@gmail.com",
+      "subject": "⚠️ Overdue Notice: \"The Sympathizer\" — Fine Accruing (₹160)",
+      "timestamp": "2026-11-02T05:33:51.974Z",
+      "status": "success",
+      "error": null,
+      "previewUrl": null,
+      "messageId": "<87273b90-0328-bf46-5c4e-4051225024d3@gmail.com>"
+    },
+    {
+      "id": 17,
+      "to": "aisha@gmail.com",
+      "subject": "⚠️ Overdue Notice: \"An Immense World\" — Fine Accruing (₹160)",
+      "timestamp": "2026-11-02T05:33:45.296Z",
+      "status": "success",
+      "error": null,
+      "previewUrl": null,
+      "messageId": "<f75461c3-ff8e-8c59-2a88-b8be990f3b49@gmail.com>"
     },
     {
       "id": 16,
-      "to": "241801340006@cutmap.ac.in",
-      "subject": "🧪 Library Management System — SMTP Test Email",
-      "timestamp": "2026-10-05T05:10:33.301Z",
-      "status": "failed",
-      "error": "Connection timeout",
-      "previewUrl": null
-    },
-    {
-      "id": 16,
-      "to": "241801340006@cutmap.ac.in",
-      "subject": "🧪 Library Management System — SMTP Test Email",
-      "timestamp": "2026-10-05T05:10:33.089Z",
-      "status": "failed",
-      "error": "getaddrinfo ENOTFOUND smtp.gmail.com",
-      "previewUrl": null
-    },
-    {
-      "id": 16,
-      "to": "241801340006@cutmap.ac.in",
-      "subject": "🧪 Library Management System — SMTP Test Email",
-      "timestamp": "2026-10-05T05:10:32.908Z",
-      "status": "failed",
-      "error": "getaddrinfo ENOTFOUND smtp.gmail.com",
-      "previewUrl": null
+      "to": "aisha@gmail.com",
+      "subject": "⚠️ Overdue Notice: \"Piranesi\" — Fine Accruing (₹280)",
+      "timestamp": "2026-11-02T05:33:38.476Z",
+      "status": "success",
+      "error": null,
+      "previewUrl": null,
+      "messageId": "<988404cf-90de-3e56-5d54-ce1acf1d5142@gmail.com>"
     },
     {
       "id": 15,
@@ -958,21 +1166,160 @@
   ],
   "smsLogs": [
     {
-      "id": 14,
+      "id": 24,
+      "type": "return_receipt",
+      "to": "7729921287",
+      "studentName": "venkatapathi",
+      "bookTitle": "How to Do Nothing",
+      "message": "📚 The Reading Room Library: \"How to Do Nothing\" returned by venkatapathi on 09 Nov 2026 at 05:29 PM. Returned on time with zero late fine. Thank you!",
+      "status": "delivered",
+      "timestamp": "2026-11-09T11:59:37.280Z",
+      "bookId": 6,
+      "studentId": 9,
+      "fineAmount": 0,
+      "returnDate": "09 Nov 2026",
+      "returnTime": "05:29 PM"
+    },
+    {
+      "id": 23,
       "type": "issue_alert",
+      "to": "7729921287",
+      "studentName": "venkatapathi",
+      "bookTitle": "How to Do Nothing",
+      "message": "📚 The Reading Room Library Alert: Hello venkatapathi, you have checked out \"How to Do Nothing\" by Jenny Odell on 09 Nov 2026 at 05:24 PM. Due Date: 23 Nov 2026 (14 days). Late fine: ₹10/day. Enjoy reading!",
+      "status": "delivered",
+      "timestamp": "2026-11-09T11:54:08.087Z",
+      "loanId": 10,
+      "bookId": 6,
+      "studentId": 9,
+      "issuedDate": "09 Nov 2026",
+      "issuedTime": "05:24 PM",
+      "dueDate": "23 Nov 2026",
+      "loanDays": 14
+    },
+    {
+      "id": 22,
+      "type": "issue_alert",
+      "to": "+91 98765 43210",
+      "studentName": "Aisha Khan",
+      "bookTitle": "Beloved",
+      "message": "📚 The Reading Room Library Alert: Hello Aisha Khan, you have checked out \"Beloved\" by Toni Morrison on 09 Nov 2026 at 05:23 PM. Due Date: 23 Nov 2026 (14 days). Late fine: ₹10/day. Enjoy reading!",
+      "status": "delivered",
+      "timestamp": "2026-11-09T11:53:52.134Z",
+      "loanId": 9,
+      "bookId": 1,
+      "studentId": 1,
+      "issuedDate": "09 Nov 2026",
+      "issuedTime": "05:23 PM",
+      "dueDate": "23 Nov 2026",
+      "loanDays": 14
+    },
+    {
+      "id": 21,
+      "type": "welcome",
+      "to": "7729921287",
+      "studentName": "venkatapathi",
+      "bookTitle": "Library Membership Active",
+      "message": "🎉 Welcome to The Reading Room Library, venkatapathi! Your membership is active. You can now browse our catalog, read digital flipbooks, and borrow titles.",
+      "status": "delivered",
+      "timestamp": "2026-11-09T11:53:40.069Z"
+    },
+    {
+      "id": 20,
+      "type": "issue_alert",
+      "to": "+91 7702801043",
+      "studentName": "lokesh",
+      "bookTitle": "The Left Hand of Darkness",
+      "message": "📚 The Reading Room Library Alert: Hello lokesh, you have checked out \"The Left Hand of Darkness\" by Ursula K. Le Guin on 04 Nov 2026 at 08:23 PM. Due Date: 18 Nov 2026 (14 days). Late fine: ₹10/day. Enjoy reading!",
+      "status": "delivered",
+      "timestamp": "2026-11-04T14:53:33.279Z",
+      "loanId": 8,
+      "bookId": 2,
+      "studentId": 8,
+      "issuedDate": "04 Nov 2026",
+      "issuedTime": "08:23 PM",
+      "dueDate": "18 Nov 2026",
+      "loanDays": 14
+    },
+    {
+      "id": 19,
+      "type": "welcome",
+      "to": "+91 98765 95292",
+      "studentName": "lokesh",
+      "bookTitle": "Library Membership Active",
+      "message": "🎉 Welcome to The Reading Room Library, lokesh! Your membership is active. You can now browse our catalog, read digital flipbooks, and borrow titles.",
+      "status": "delivered",
+      "timestamp": "2026-11-04T14:52:22.443Z"
+    },
+    {
+      "id": 18,
+      "type": "overdue_alert",
+      "to": "+91 98765 43210",
+      "studentName": "Aisha Khan",
+      "bookTitle": "Circe",
+      "message": "⚠️ Library Overdue Notice: Hello Aisha Khan, \"Circe\" was due on 17 Oct 2026 and is now 16 day(s) overdue. Fine accrued: ₹160 (₹10/day). Please return immediately.",
+      "status": "delivered",
+      "timestamp": "2026-11-02T05:34:07.706Z",
+      "loanId": 7,
+      "dueDate": "17 Oct 2026",
+      "daysLate": 16,
+      "fineAmount": 160
+    },
+    {
+      "id": 17,
+      "type": "overdue_alert",
+      "to": "+91 98765 43210",
+      "studentName": "Aisha Khan",
+      "bookTitle": "Braiding Sweetgrass",
+      "message": "⚠️ Library Overdue Notice: Hello Aisha Khan, \"Braiding Sweetgrass\" was due on 17 Oct 2026 and is now 16 day(s) overdue. Fine accrued: ₹160 (₹10/day). Please return immediately.",
+      "status": "delivered",
+      "timestamp": "2026-11-02T05:34:01.539Z",
+      "loanId": 6,
+      "dueDate": "17 Oct 2026",
+      "daysLate": 16,
+      "fineAmount": 160
+    },
+    {
+      "id": 16,
+      "type": "overdue_alert",
       "to": "9652886689",
       "studentName": "kavya",
-      "bookTitle": "Beloved",
-      "message": "📚 The Reading Room Library Alert: Hello kavya, you have checked out \"Beloved\" by Toni Morrison on 05 Oct 2026 at 10:43 AM. Due Date: 19 Oct 2026 (14 days). Late fine: ₹10/day. Enjoy reading!",
+      "bookTitle": "The Sympathizer",
+      "message": "⚠️ Library Overdue Notice: Hello kavya, \"The Sympathizer\" was due on 17 Oct 2026 and is now 16 day(s) overdue. Fine accrued: ₹160 (₹10/day). Please return immediately.",
       "status": "delivered",
-      "timestamp": "2026-10-05T05:13:37.276Z",
-      "loanId": 8,
-      "bookId": 1,
-      "studentId": 5,
-      "issuedDate": "05 Oct 2026",
-      "issuedTime": "10:43 AM",
-      "dueDate": "19 Oct 2026",
-      "loanDays": 14
+      "timestamp": "2026-11-02T05:33:55.399Z",
+      "loanId": 5,
+      "dueDate": "17 Oct 2026",
+      "daysLate": 16,
+      "fineAmount": 160
+    },
+    {
+      "id": 15,
+      "type": "overdue_alert",
+      "to": "+91 98765 43210",
+      "studentName": "Aisha Khan",
+      "bookTitle": "An Immense World",
+      "message": "⚠️ Library Overdue Notice: Hello Aisha Khan, \"An Immense World\" was due on 17 Oct 2026 and is now 16 day(s) overdue. Fine accrued: ₹160 (₹10/day). Please return immediately.",
+      "status": "delivered",
+      "timestamp": "2026-11-02T05:33:48.562Z",
+      "loanId": 4,
+      "dueDate": "17 Oct 2026",
+      "daysLate": 16,
+      "fineAmount": 160
+    },
+    {
+      "id": 14,
+      "type": "overdue_alert",
+      "to": "+91 98765 43210",
+      "studentName": "Aisha Khan",
+      "bookTitle": "Piranesi",
+      "message": "⚠️ Library Overdue Notice: Hello Aisha Khan, \"Piranesi\" was due on 05 Oct 2026 and is now 28 day(s) overdue. Fine accrued: ₹280 (₹10/day). Please return immediately.",
+      "status": "delivered",
+      "timestamp": "2026-11-02T05:33:41.829Z",
+      "loanId": 2,
+      "dueDate": "05 Oct 2026",
+      "daysLate": 28,
+      "fineAmount": 280
     },
     {
       "id": 13,

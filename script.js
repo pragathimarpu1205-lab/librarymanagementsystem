@@ -302,6 +302,36 @@ function handleMockApi(path, options = {}) {
     }
   }
 
+  // 4b. Students DELETE and PUT
+  if (cleanPath.startsWith('students/')) {
+    const sId = Number(cleanPath.split('/')[1]);
+    if (method === 'DELETE') {
+      const active = db.books.filter(b => b.status === 'out' && b.studentId === sId);
+      if (active.length > 0) {
+        return { success: false, message: `Cannot remove student. They currently have ${active.length} active borrowed book(s).` };
+      }
+      const stIdx = db.students.findIndex(s => s.id === sId);
+      if (stIdx !== -1) {
+        const removed = db.students.splice(stIdx, 1)[0];
+        db.activityLog.unshift({ time: 'Just now', text: `Removed student "${removed.name}"` });
+        saveMockDB(db);
+        return { success: true, message: `Student "${removed.name}" removed successfully.` };
+      }
+      return { success: false, message: 'Student not found.' };
+    }
+    if (method === 'PUT') {
+      const st = db.students.find(s => s.id === sId);
+      if (st) {
+        if (body.name) st.name = body.name;
+        if (body.email) st.email = body.email;
+        if (body.phone) st.phone = body.phone;
+        saveMockDB(db);
+        return { success: true, student: st };
+      }
+      return { success: false, message: 'Student not found.' };
+    }
+  }
+
   // 5. Activity
   if (cleanPath === 'activity') return db.activityLog;
 
@@ -1926,6 +1956,7 @@ function renderStudentsTable(filteredStudents = null) {
         <td style="display:flex; gap:6px; flex-wrap:wrap;">
           <button class="action-btn" onclick="loadStudentProfile(${s.id})">View Account</button>
           <button class="action-btn" onclick="openEditStudentModal(${s.id})" style="background:#fff8e1; border-color:#b8935a; color:#8d6e3f;">✏️ Edit</button>
+          <button class="action-btn" onclick="deleteStudent(${s.id})" style="background:#fee2e2; border-color:#ef4444; color:#b91c1c;">🗑️ Remove</button>
         </td>
       </tr>
     `;
@@ -2166,6 +2197,50 @@ document.getElementById('confirmEditStudent')?.addEventListener('click', async (
   } else {
     alert(res?.message || 'Failed to update student.');
   }
+});
+
+// Remove / Delete Student
+async function deleteStudent(studentId) {
+  const sId = Number(studentId);
+  const student = students.find(s => s.id === sId);
+  if (!student) {
+    alert('Student not found.');
+    return;
+  }
+
+  // Check if student has active unreturned books
+  const activeBooks = books.filter(b => b.status === 'out' && b.studentId === sId);
+  if (activeBooks.length > 0) {
+    alert(`⚠️ Cannot remove student "${student.name}".\n\nThey currently have ${activeBooks.length} borrowed book(s) checked out:\n${activeBooks.map(b => '• ' + b.title).join('\n')}\n\nPlease return these books first in the "Return" section before removing the student.`);
+    return;
+  }
+
+  const confirmed = confirm(`Are you sure you want to remove student "${student.name}" (ID: ${student.id})?\n\nThis will permanently delete this student account.`);
+  if (!confirmed) return;
+
+  const res = await api(API_BASE + 'students/' + sId, { method: 'DELETE' });
+  if (res && res.success) {
+    alert(`✅ Student "${student.name}" has been removed successfully.`);
+    if (editStudentModal) hideModal(editStudentModal);
+    if (currentView === 'student-profile') {
+      showView('students');
+    }
+    await refreshAllData();
+    renderStudentsTable();
+    renderAdminDashboard();
+  } else {
+    alert(res?.message || 'Failed to remove student.');
+  }
+}
+window.deleteStudent = deleteStudent;
+
+document.getElementById('deleteStudentFromModal')?.addEventListener('click', () => {
+  const studentId = Number(document.getElementById('editStudentId').value);
+  if (studentId) deleteStudent(studentId);
+});
+
+document.getElementById('profileDeleteStudentBtn')?.addEventListener('click', () => {
+  if (currentProfileId) deleteStudent(currentProfileId);
 });
 
 // Fine Rate Save

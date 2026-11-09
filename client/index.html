@@ -356,8 +356,9 @@
     <div class="view hidden" id="view-student-profile">
       <div class="page-title">Student Details</div>
       <div class="page-sub">account summary, active loans, and fine clearance</div>
-      <div class="profile-header" style="margin-bottom:16px;">
+      <div class="profile-header" style="margin-bottom:16px; display:flex; justify-content:space-between; align-items:center;">
         <button class="action-btn" id="profileBackBtn">← Back to students</button>
+        <button class="action-btn" id="profileDeleteStudentBtn" style="background:#fee2e2; border-color:#ef4444; color:#b91c1c; font-weight:600;">🗑️ Remove Student</button>
       </div>
       <div class="panel student-profile-panel">
         <div class="student-summary">
@@ -609,9 +610,12 @@
     <input type="hidden" id="editStudentId">
     <div class="field"><label>Full Name</label><input type="text" id="editStudentName" placeholder="Student name"></div>
     <div class="field"><label>Email Address</label><input type="email" id="editStudentEmail" placeholder="student@email.com"></div>
-    <div class="modal-actions">
-      <button class="btn-cancel" id="cancelEditStudent">Cancel</button>
-      <button class="btn-confirm" id="confirmEditStudent">💾 Save Changes</button>
+    <div class="modal-actions" style="display:flex; justify-content:space-between; align-items:center;">
+      <button type="button" class="action-btn" id="deleteStudentFromModal" style="background:#fee2e2; border-color:#ef4444; color:#b91c1c; font-weight:600;">🗑️ Delete Student</button>
+      <div style="display:flex; gap:8px;">
+        <button class="btn-cancel" id="cancelEditStudent">Cancel</button>
+        <button class="btn-confirm" id="confirmEditStudent">💾 Save Changes</button>
+      </div>
     </div>
   </div>
 </div>
